@@ -105,7 +105,11 @@ export const StatsModal: React.FC<StatsModalProps> = ({
       aria-label="آمار و کارنامه کلمباز"
       className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-neutral-900 border border-purple-500/40 p-5 sm:p-6 text-white shadow-2xl overflow-y-auto max-h-[90vh]">
+      <div
+        dir="ltr"
+        className="relative w-full max-w-md rounded-2xl bg-neutral-900 border border-purple-500/40 p-5 sm:p-6 text-white shadow-2xl overflow-y-auto max-h-[90vh]"
+      >
+        <div dir="rtl">
         {/* Close Button */}
         <button
           onClick={onClose}
@@ -137,17 +141,19 @@ export const StatsModal: React.FC<StatsModalProps> = ({
             <h3 className="text-2xl font-black text-white font-['Lalezar',sans-serif] my-1 tracking-wide">
               {targetWord.word}
             </h3>
-            <div className="inline-block px-2.5 py-0.5 rounded-full bg-purple-900/80 text-[10px] text-purple-200 border border-purple-700 mb-2 font-bold">
-              کلمه {wordLength.toLocaleString('fa-IR')} حرفی
+            <div className="flex items-center justify-center gap-2 mt-1">
+              <span className="inline-block px-2.5 py-0.5 rounded-full bg-purple-900/80 text-[10px] text-purple-200 border border-purple-700 font-bold">
+                کلمه {wordLength.toLocaleString('fa-IR')} حرفی
+              </span>
+              {targetWord.id && (
+                <span
+                  dir="ltr"
+                  className="inline-block px-2 py-0.5 rounded-full bg-black/50 text-[10px] font-mono text-emerald-300 border border-emerald-700/60 font-bold"
+                >
+                  #{targetWord.id}
+                </span>
+              )}
             </div>
-            <p className="text-xs text-neutral-200 leading-relaxed max-w-sm mx-auto">
-              {targetWord.meaning}
-            </p>
-            {targetWord.example && (
-              <p className="text-[11px] text-emerald-300/80 italic mt-1.5">
-                «{targetWord.example}»
-              </p>
-            )}
           </div>
         )}
 
@@ -246,6 +252,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               <span>{copied ? 'کپی شد! 🎉' : 'اشتراک‌گذاری نتیجه'}</span>
             </button>
           )}
+        </div>
         </div>
       </div>
     </div>

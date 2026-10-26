@@ -1,7 +1,6 @@
 export interface WordEntry {
+  id: string; // e.g., "four1", "five1", "six1"
   word: string; // The Persian word
-  meaning?: string; // Meaning / Definition in Persian
-  example?: string;
 }
 
 export type TileStatus = 'correct' | 'present' | 'absent' | 'empty' | 'tbd';

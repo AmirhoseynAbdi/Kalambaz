@@ -172,29 +172,72 @@ export function updateDailyStreak(
 }
 
 /**
- * Selects deterministic daily word based on date and word length.
+ * Returns the ID prefix for a word length ("four", "five", or "six").
+ */
+export function getWordPrefix(length: 4 | 5 | 6): 'four' | 'five' | 'six' {
+  return length === 4 ? 'four' : length === 5 ? 'five' : 'six';
+}
+
+/**
+ * Ensures every entry in a word list has a sequential counter id ("four1", "four2", etc.)
+ * and strips any legacy fields.
+ */
+export function normalizeWordList(
+  length: 4 | 5 | 6,
+  rawList: Array<{ id?: string; word: string }>
+): WordEntry[] {
+  const prefix = getWordPrefix(length);
+  return rawList
+    .map((item) => ({
+      word: normalizePersian(item?.word || ''),
+    }))
+    .filter((item) => item.word.length === length)
+    .map((item, idx) => ({
+      id: `${prefix}${idx + 1}`,
+      word: item.word,
+    }));
+}
+
+/**
+ * Selects a deterministic daily 4-letter, 5-letter, or 6-letter word based on date and length
+ * using its counter ID ("four1".."fourN", "five1".."fiveN", "six1".."sixN") so it is identical
+ * for all users on the same calendar day (like Wordle).
  */
 export function getDailyWord(
   dateStr: string,
   length: 4 | 5 | 6,
   wordsList: WordEntry[]
 ): WordEntry {
+  const prefix = getWordPrefix(length);
+
   if (!wordsList || wordsList.length === 0) {
     return {
-      word: length === 4 ? 'کلمب' : length === 5 ? 'باران' : 'خورشید',
-      meaning: 'کلمه پیش‌فرض کلمباز',
+      id: `${prefix}1`,
+      word: length === 4 ? 'واژه' : length === 5 ? 'باران' : 'خورشید',
     };
   }
 
-  // Create hash from dateStr + length
-  let hash = 0;
-  const key = `${dateStr}_len_${length}`;
-  for (let i = 0; i < key.length; i++) {
-    hash = (hash << 5) - hash + key.charCodeAt(i);
-    hash |= 0;
+  // Deterministic hash from YYYY-MM-DD and word length prefix ("four", "five", "six")
+  let hash = 2166136261;
+  const seedKey = `kalabaz_daily_${dateStr}_${prefix}`;
+  for (let i = 0; i < seedKey.length; i++) {
+    hash ^= seedKey.charCodeAt(i);
+    hash = Math.imul(hash, 16777619);
   }
 
   const positiveHash = Math.abs(hash);
-  const index = positiveHash % wordsList.length;
-  return wordsList[index];
+  const counterNum = (positiveHash % wordsList.length) + 1;
+  const targetId = `${prefix}${counterNum}`;
+
+  const matchedById = wordsList.find((w) => w.id === targetId);
+  if (matchedById) {
+    return { id: matchedById.id, word: matchedById.word };
+  }
+
+  const fallback = wordsList[counterNum - 1] || wordsList[0];
+  return {
+    id: fallback.id || targetId,
+    word: fallback.word,
+  };
 }
+

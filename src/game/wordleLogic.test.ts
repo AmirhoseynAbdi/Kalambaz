@@ -6,6 +6,8 @@ import {
   validateHardMode,
   updateDailyStreak,
   getDailyWord,
+  normalizeWordList,
+  getWordPrefix,
 } from './wordleLogic';
 import { PlayerStats, WordEntry } from '../types';
 

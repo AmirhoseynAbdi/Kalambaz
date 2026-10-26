@@ -24,6 +24,7 @@ import {
   updateDailyStreak,
   getDailyWord,
   getTodayDateString,
+  normalizeWordList,
 } from './game/wordleLogic';
 import {
   playKeySound,
@@ -100,31 +101,34 @@ export default function App() {
   // Today's Date String (YYYY-MM-DD)
   const todayStr = useMemo(() => getTodayDateString(), []);
 
-  // 3 Distinct Word Lists for 4, 5, and 6 letter words
+  // 3 Distinct Word Lists for 4, 5, and 6 letter words with sequential counter IDs (four1.., five1.., six1..)
   const [words4, setWords4] = useState<WordEntry[]>(() => {
     try {
       const saved = localStorage.getItem('kalabaz_words_4');
-      return saved ? JSON.parse(saved) : (words4Initial as WordEntry[]);
+      const raw = saved ? JSON.parse(saved) : words4Initial;
+      return normalizeWordList(4, raw);
     } catch {
-      return words4Initial as WordEntry[];
+      return normalizeWordList(4, words4Initial as WordEntry[]);
     }
   });
 
   const [words5, setWords5] = useState<WordEntry[]>(() => {
     try {
       const saved = localStorage.getItem('kalabaz_words_5');
-      return saved ? JSON.parse(saved) : (words5Initial as WordEntry[]);
+      const raw = saved ? JSON.parse(saved) : words5Initial;
+      return normalizeWordList(5, raw);
     } catch {
-      return words5Initial as WordEntry[];
+      return normalizeWordList(5, words5Initial as WordEntry[]);
     }
   });
 
   const [words6, setWords6] = useState<WordEntry[]>(() => {
     try {
       const saved = localStorage.getItem('kalabaz_words_6');
-      return saved ? JSON.parse(saved) : (words6Initial as WordEntry[]);
+      const raw = saved ? JSON.parse(saved) : words6Initial;
+      return normalizeWordList(6, raw);
     } catch {
-      return words6Initial as WordEntry[];
+      return normalizeWordList(6, words6Initial as WordEntry[]);
     }
   });
 
@@ -153,25 +157,44 @@ export default function App() {
 
     // Check account-saved game states or local storage
     lengths.forEach((len) => {
+      const vocabForLen =
+        len === 4
+          ? (words4Initial as WordEntry[])
+          : len === 5
+          ? (words5Initial as WordEntry[])
+          : (words6Initial as WordEntry[]);
+      const canonicalTarget = getDailyWord(todayStr, len, vocabForLen);
+
       const accountState = currentAccount?.gameStates?.[len];
-      if (accountState && accountState.dateKey === todayStr) {
-        states[len] = accountState;
+      if (
+        accountState &&
+        accountState.dateKey === todayStr &&
+        accountState.targetWord?.word === canonicalTarget.word
+      ) {
+        states[len] = {
+          ...accountState,
+          targetWord: canonicalTarget,
+        };
         return;
       }
 
       try {
         const saved = localStorage.getItem(`kalabaz_state_${len}_${todayStr}`);
         if (saved) {
-          states[len] = JSON.parse(saved);
-          return;
+          const parsedState: DailyGameState = JSON.parse(saved);
+          if (parsedState.targetWord?.word === canonicalTarget.word) {
+            states[len] = {
+              ...parsedState,
+              targetWord: canonicalTarget,
+            };
+            return;
+          }
         }
       } catch {}
 
-      const vocabForLen = len === 4 ? words4Initial : len === 5 ? words5Initial : words6Initial;
-      const target = getDailyWord(todayStr, len, vocabForLen as WordEntry[]);
       states[len] = {
         wordLength: len,
-        targetWord: target,
+        targetWord: canonicalTarget,
         guesses: [],
         evaluations: [],
         status: 'playing',
@@ -472,7 +495,7 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleEnter, handleDelete, handleChar]);
 
-  // Vocabulary handlers for 4, 5, 6
+  // Vocabulary handlers for 4, 5, 6 (maintaining sequential counter IDs: four1.., five1.., six1..)
   const handleSaveWord = (length: 4 | 5 | 6, newWord: WordEntry, oldWord?: string) => {
     const updateList = (prev: WordEntry[]) => {
       const idx = oldWord
@@ -480,10 +503,10 @@ export default function App() {
         : prev.findIndex((w) => w.word === newWord.word);
       if (idx >= 0) {
         const copy = [...prev];
-        copy[idx] = newWord;
-        return copy;
+        copy[idx] = { id: copy[idx].id, word: newWord.word };
+        return normalizeWordList(length, copy);
       }
-      return [newWord, ...prev];
+      return normalizeWordList(length, [...prev, newWord]);
     };
 
     if (length === 4) setWords4(updateList);
@@ -494,7 +517,11 @@ export default function App() {
   };
 
   const handleDeleteWord = (length: 4 | 5 | 6, wordText: string) => {
-    const removeWord = (prev: WordEntry[]) => prev.filter((w) => w.word !== wordText);
+    const removeWord = (prev: WordEntry[]) =>
+      normalizeWordList(
+        length,
+        prev.filter((w) => w.word !== wordText)
+      );
     if (length === 4) setWords4(removeWord);
     else if (length === 5) setWords5(removeWord);
     else setWords6(removeWord);
@@ -503,9 +530,9 @@ export default function App() {
   };
 
   const handleResetVocabulary = (length: 4 | 5 | 6) => {
-    if (length === 4) setWords4(words4Initial as WordEntry[]);
-    else if (length === 5) setWords5(words5Initial as WordEntry[]);
-    else setWords6(words6Initial as WordEntry[]);
+    if (length === 4) setWords4(normalizeWordList(4, words4Initial as WordEntry[]));
+    else if (length === 5) setWords5(normalizeWordList(5, words5Initial as WordEntry[]));
+    else setWords6(normalizeWordList(6, words6Initial as WordEntry[]));
 
     showToast(`کلمات ${length} حرفی به حالت اولیه بازنشانی شدند`);
   };
@@ -514,7 +541,7 @@ export default function App() {
     const merge = (prev: WordEntry[]) => {
       const existingMap = new Set(prev.map((w) => w.word));
       const additions = newWords.filter((w) => !existingMap.has(w.word));
-      return [...additions, ...prev];
+      return normalizeWordList(length, [...prev, ...additions]);
     };
 
     if (length === 4) setWords4(merge);

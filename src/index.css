@@ -16,6 +16,16 @@
   kbd {
     font-family: 'Vazirmatn', sans-serif;
   }
+
+  /* Ensure browser viewport scrollbar is always rendered on the right side */
+  html,
+  body {
+    direction: ltr;
+  }
+
+  #root {
+    direction: rtl;
+  }
 }
 
 /* Custom flip animations for Wordle tiles */
