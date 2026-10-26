@@ -1,0 +1,6 @@
+{
+  "name": "کلمباز | Kalabaz - بازی روزانه کلمات فارسی",
+  "description": "کلمباز (Kalabaz) - بازی معمایی روزانه حدس کلمات فارسی ۴، ۵ و ۶ حرفی با تم کلم سبز و بنفش، کیبورد فارسی، استریک روزانه، حالت سخت و واژه‌نامه قابل ویرایش.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
