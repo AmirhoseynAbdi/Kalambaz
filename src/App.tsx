@@ -5,12 +5,8 @@
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import confetti from 'canvas-confetti';
-import words4Initial from './data/words4.json';
-import words5Initial from './data/words5.json';
-import words6Initial from './data/words6.json';
+import { DAILY_WORDS, ELIGIBLE_WORDS } from './data/wordLists';
 import {
-  WordEntry,
-  EvaluationResult,
   GameStatus,
   PlayerStats,
   UserAccount,
@@ -24,7 +20,7 @@ import {
   updateDailyStreak,
   getDailyWord,
   getTodayDateString,
-  normalizeWordList,
+  isWordInVocabulary,
 } from './game/wordleLogic';
 import {
   playKeySound,
@@ -32,6 +28,11 @@ import {
   playErrorSound,
   playWinSound,
 } from './utils/audio';
+import {
+  apiFetchCurrentUser,
+  apiSyncUserData,
+  setSessionToken,
+} from './utils/api';
 
 import { Header } from './components/Header';
 import { GameBoard } from './components/GameBoard';
@@ -41,7 +42,6 @@ import { DesktopDashboard } from './components/DesktopDashboard';
 import { DesktopSponsorPanel } from './components/DesktopSponsorPanel';
 import { PreGameAdModal } from './components/PreGameAdModal';
 import { LoginModal } from './components/Modals/LoginModal';
-import { VocabularyModal } from './components/Modals/VocabularyModal';
 import { StatsModal } from './components/Modals/StatsModal';
 import { SettingsModal } from './components/Modals/SettingsModal';
 import { HelpModal } from './components/Modals/HelpModal';
@@ -101,42 +101,6 @@ export default function App() {
   // Today's Date String (YYYY-MM-DD)
   const todayStr = useMemo(() => getTodayDateString(), []);
 
-  // 3 Distinct Word Lists for 4, 5, and 6 letter words with sequential counter IDs (four1.., five1.., six1..)
-  const [words4, setWords4] = useState<WordEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('kalabaz_words_4');
-      const raw = saved ? JSON.parse(saved) : words4Initial;
-      return normalizeWordList(4, raw);
-    } catch {
-      return normalizeWordList(4, words4Initial as WordEntry[]);
-    }
-  });
-
-  const [words5, setWords5] = useState<WordEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('kalabaz_words_5');
-      const raw = saved ? JSON.parse(saved) : words5Initial;
-      return normalizeWordList(5, raw);
-    } catch {
-      return normalizeWordList(5, words5Initial as WordEntry[]);
-    }
-  });
-
-  const [words6, setWords6] = useState<WordEntry[]>(() => {
-    try {
-      const saved = localStorage.getItem('kalabaz_words_6');
-      const raw = saved ? JSON.parse(saved) : words6Initial;
-      return normalizeWordList(6, raw);
-    } catch {
-      return normalizeWordList(6, words6Initial as WordEntry[]);
-    }
-  });
-
-  // Get active word list for current length
-  const activeWordList = useMemo(() => {
-    return currentLength === 4 ? words4 : currentLength === 5 ? words5 : words6;
-  }, [currentLength, words4, words5, words6]);
-
   // Player Stats (tracked with account if logged in)
   const [stats, setStats] = useState<PlayerStats>(() => {
     if (currentAccount && currentAccount.stats) {
@@ -157,13 +121,8 @@ export default function App() {
 
     // Check account-saved game states or local storage
     lengths.forEach((len) => {
-      const vocabForLen =
-        len === 4
-          ? (words4Initial as WordEntry[])
-          : len === 5
-          ? (words5Initial as WordEntry[])
-          : (words6Initial as WordEntry[]);
-      const canonicalTarget = getDailyWord(todayStr, len, vocabForLen);
+      const dailyListForLen = DAILY_WORDS[len];
+      const canonicalTarget = getDailyWord(todayStr, len, dailyListForLen);
 
       const accountState = currentAccount?.gameStates?.[len];
       if (
@@ -219,13 +178,12 @@ export default function App() {
   const [isPreGameAdOpen, setIsPreGameAdOpen] = useState<boolean>(false);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
-  const [isVocabOpen, setIsVocabOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
 
   // Active game state
   const currentGame = gameStates[currentLength] || {
     wordLength: currentLength,
-    targetWord: getDailyWord(todayStr, currentLength, activeWordList),
+    targetWord: getDailyWord(todayStr, currentLength, DAILY_WORDS[currentLength]),
     guesses: [],
     evaluations: [],
     status: 'playing',
@@ -248,41 +206,89 @@ export default function App() {
     } catch {}
   }, [settings]);
 
-  // Save 4/5/6 word lists
-  useEffect(() => {
-    try {
-      localStorage.setItem('kalabaz_words_4', JSON.stringify(words4));
-    } catch {}
-  }, [words4]);
+  // Apply account data to local states
+  const applyAccountState = useCallback(
+    (account: UserAccount) => {
+      setCurrentAccount(account);
+      try {
+        localStorage.setItem('kalabaz_current_user', account.username);
+        const accountsRaw = localStorage.getItem('kalabaz_accounts');
+        const accounts = accountsRaw ? JSON.parse(accountsRaw) : {};
+        accounts[account.username] = account;
+        localStorage.setItem('kalabaz_accounts', JSON.stringify(accounts));
+      } catch {}
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('kalabaz_words_5', JSON.stringify(words5));
-    } catch {}
-  }, [words5]);
+      if (account.stats) {
+        setStats(account.stats);
+      }
 
-  useEffect(() => {
-    try {
-      localStorage.setItem('kalabaz_words_6', JSON.stringify(words6));
-    } catch {}
-  }, [words6]);
+      setGameStates((prev) => {
+        const next = { ...prev };
+        ([4, 5, 6] as const).forEach((len) => {
+          const accState = account.gameStates?.[len];
+          const canonicalTarget = getDailyWord(todayStr, len, DAILY_WORDS[len]);
+          if (
+            accState &&
+            accState.dateKey === todayStr &&
+            accState.targetWord?.word === canonicalTarget.word
+          ) {
+            next[len] = { ...accState, targetWord: canonicalTarget };
+          } else {
+            next[len] = {
+              wordLength: len,
+              targetWord: canonicalTarget,
+              guesses: [],
+              evaluations: [],
+              status: 'playing',
+              hardMode: settings.hardMode,
+              dateKey: todayStr,
+            };
+          }
+        });
+        return next;
+      });
+    },
+    [todayStr, settings.hardMode]
+  );
 
-  // Sync account updates to localStorage
-  const syncAccountData = useCallback((updatedStats: PlayerStats, updatedGameStates: { [len: number]: DailyGameState }) => {
-    if (!currentAccount) return;
-    try {
-      const accountsRaw = localStorage.getItem('kalabaz_accounts');
-      const accounts = accountsRaw ? JSON.parse(accountsRaw) : {};
-      const updatedAccount: UserAccount = {
-        ...currentAccount,
-        stats: updatedStats,
-        gameStates: updatedGameStates,
-      };
-      accounts[currentAccount.username] = updatedAccount;
-      localStorage.setItem('kalabaz_accounts', JSON.stringify(accounts));
-      setCurrentAccount(updatedAccount);
-    } catch {}
-  }, [currentAccount]);
+  // On initial load, fetch latest profile from SQLite server if a session token exists
+  useEffect(() => {
+    let active = true;
+    apiFetchCurrentUser()
+      .then((serverAccount) => {
+        if (active && serverAccount) {
+          applyAccountState(serverAccount);
+          setIsLoginOpen(false);
+        }
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+  }, [applyAccountState]);
+
+  // Sync account updates to SQLite backend and localStorage cache
+  const syncAccountData = useCallback(
+    (updatedStats: PlayerStats, updatedGameStates: { [len: number]: DailyGameState }) => {
+      if (!currentAccount) return;
+      try {
+        const accountsRaw = localStorage.getItem('kalabaz_accounts');
+        const accounts = accountsRaw ? JSON.parse(accountsRaw) : {};
+        const updatedAccount: UserAccount = {
+          ...currentAccount,
+          stats: updatedStats,
+          gameStates: updatedGameStates,
+        };
+        accounts[currentAccount.username] = updatedAccount;
+        localStorage.setItem('kalabaz_accounts', JSON.stringify(accounts));
+        setCurrentAccount(updatedAccount);
+      } catch {}
+
+      // Persist asynchronously to SQLite backend
+      apiSyncUserData(updatedStats, updatedGameStates).catch(() => {});
+    },
+    [currentAccount]
+  );
 
   // Save active game state locally
   useEffect(() => {
@@ -298,17 +304,7 @@ export default function App() {
 
   // Handle Login / Signup
   const handleLoginSuccess = (account: UserAccount) => {
-    setCurrentAccount(account);
-    localStorage.setItem('kalabaz_current_user', account.username);
-    if (account.stats) {
-      setStats(account.stats);
-    }
-    if (account.gameStates) {
-      setGameStates((prev) => ({
-        ...prev,
-        ...account.gameStates,
-      }));
-    }
+    applyAccountState(account);
     showToast(`خوش آمدید، ${account.username}!`);
     if (settings.showAds && !isAutostart) {
       setIsPreGameAdOpen(true);
@@ -318,6 +314,7 @@ export default function App() {
   // Handle Logout
   const handleLogout = () => {
     localStorage.removeItem('kalabaz_current_user');
+    setSessionToken(null);
     setCurrentAccount(null);
     showToast('از حساب کاربری خارج شدید.');
     setIsLoginOpen(true);
@@ -359,15 +356,17 @@ export default function App() {
       return;
     }
 
-    // 2. Dictionary validity check from active list
-    const isValidWord = activeWordList.some(
-      (entry) => normalizePersian(entry.word) === normalizedGuess
+    // 2. Dictionary validity check from Eligible Guess Word List + Daily Puzzle Target Word List
+    const isValidWord = isWordInVocabulary(
+      normalizedGuess,
+      ELIGIBLE_WORDS[currentLength],
+      DAILY_WORDS[currentLength]
     );
 
     if (!isValidWord) {
       setIsShaking(true);
       playErrorSound(settings.soundEnabled);
-      showToast(`کلمه در لیست کلمات ${currentLength.toLocaleString('fa-IR')} حرفی یافت نشد!`);
+      showToast(`کلمه در لیست کلمات مجاز ${currentLength.toLocaleString('fa-IR')} حرفی یافت نشد!`);
       setTimeout(() => setIsShaking(false), 500);
       return;
     }
@@ -420,7 +419,7 @@ export default function App() {
     setGameStates(newGameStates);
     setCurrentGuess('');
 
-    // Handle Game Conclusion (Win or Loss)
+    // Handle Game Conclusion (Win or Loss) or intermediate guess sync
     if (isWin || isLoss) {
       const updatedStats = updateDailyStreak(
         stats,
@@ -430,7 +429,7 @@ export default function App() {
       );
       setStats(updatedStats);
 
-      // Sync to current account
+      // Sync to current account and SQLite server
       syncAccountData(updatedStats, newGameStates);
 
       if (isWin) {
@@ -440,7 +439,7 @@ export default function App() {
             particleCount: 80,
             spread: 70,
             origin: { y: 0.6 },
-            colors: ['#10b981', '#8b5cf6', '#eab308', '#ec4899'],
+            colors: ['#2b8a68', '#6ee7b7', '#7c4dff', '#c4b5fd', '#1f634b', '#5e358c'],
           });
           showToast('تبریک! کلمه را درست حدس زدید 🥬🎉');
           setTimeout(() => setIsStatsOpen(true), 1500);
@@ -451,9 +450,10 @@ export default function App() {
           setTimeout(() => setIsStatsOpen(true), 1500);
         }, newGuesses.length * 150);
       }
+    } else {
+      syncAccountData(stats, newGameStates);
     }
   }, [
-    activeWordList,
     currentGame,
     currentGuess,
     currentLength,
@@ -495,75 +495,53 @@ export default function App() {
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [handleEnter, handleDelete, handleChar]);
 
-  // Vocabulary handlers for 4, 5, 6 (maintaining sequential counter IDs: four1.., five1.., six1..)
-  const handleSaveWord = (length: 4 | 5 | 6, newWord: WordEntry, oldWord?: string) => {
-    const updateList = (prev: WordEntry[]) => {
-      const idx = oldWord
-        ? prev.findIndex((w) => w.word === oldWord)
-        : prev.findIndex((w) => w.word === newWord.word);
-      if (idx >= 0) {
-        const copy = [...prev];
-        copy[idx] = { id: copy[idx].id, word: newWord.word };
-        return normalizeWordList(length, copy);
-      }
-      return normalizeWordList(length, [...prev, newWord]);
-    };
-
-    if (length === 4) setWords4(updateList);
-    else if (length === 5) setWords5(updateList);
-    else setWords6(updateList);
-
-    showToast(`کلمه «${newWord.word}» در لیست ${length} حرفی ذخیره شد`);
-  };
-
-  const handleDeleteWord = (length: 4 | 5 | 6, wordText: string) => {
-    const removeWord = (prev: WordEntry[]) =>
-      normalizeWordList(
-        length,
-        prev.filter((w) => w.word !== wordText)
-      );
-    if (length === 4) setWords4(removeWord);
-    else if (length === 5) setWords5(removeWord);
-    else setWords6(removeWord);
-
-    showToast(`کلمه «${wordText}» از لیست کلمات حذف شد`);
-  };
-
-  const handleResetVocabulary = (length: 4 | 5 | 6) => {
-    if (length === 4) setWords4(normalizeWordList(4, words4Initial as WordEntry[]));
-    else if (length === 5) setWords5(normalizeWordList(5, words5Initial as WordEntry[]));
-    else setWords6(normalizeWordList(6, words6Initial as WordEntry[]));
-
-    showToast(`کلمات ${length} حرفی به حالت اولیه بازنشانی شدند`);
-  };
-
-  const handleImportVocabulary = (length: 4 | 5 | 6, newWords: WordEntry[]) => {
-    const merge = (prev: WordEntry[]) => {
-      const existingMap = new Set(prev.map((w) => w.word));
-      const additions = newWords.filter((w) => !existingMap.has(w.word));
-      return normalizeWordList(length, [...prev, ...additions]);
-    };
-
-    if (length === 4) setWords4(merge);
-    else if (length === 5) setWords5(merge);
-    else setWords6(merge);
-
-    showToast(`واژگان ${length} حرفی با موفقیت به‌روزرسانی شدند`);
-  };
-
   return (
     <div
       dir="rtl"
-      className={`min-h-screen flex flex-col justify-between transition-colors duration-300 ${
+      className={`relative h-[100dvh] min-h-[540px] lg:min-h-screen lg:h-auto overflow-hidden lg:overflow-visible flex flex-col justify-between transition-colors duration-300 ${
         settings.darkMode
-          ? 'bg-gradient-to-b from-purple-950 via-neutral-950 to-emerald-950 text-white'
-          : 'bg-gradient-to-b from-emerald-50 via-amber-50/30 to-purple-50 text-neutral-900'
+          ? 'bg-gradient-to-br from-[#19112b] via-[#1f1836] to-[#122622] text-[#efe9f7]'
+          : 'bg-gradient-to-br from-[#deefe6] via-[#ebf4ef] to-[#eae3f3] text-[#17362a]'
       }`}
     >
+      {/* Subtle multi-shade green & purple ambient botanical backdrop */}
+      <div
+        aria-hidden="true"
+        className="pointer-events-none fixed inset-0 overflow-hidden z-0"
+      >
+        <div
+          className={`absolute -top-24 -right-24 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+            settings.darkMode
+              ? 'bg-[#3b215d]/35'
+              : 'bg-[#b5dfca]/55'
+          }`}
+        />
+        <div
+          className={`absolute top-1/3 -left-24 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
+            settings.darkMode
+              ? 'bg-[#17463a]/35'
+              : 'bg-[#d4c4eb]/50'
+          }`}
+        />
+        <div
+          className={`absolute -bottom-24 right-1/4 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
+            settings.darkMode
+              ? 'bg-[#2a1c47]/40'
+              : 'bg-[#c5e6d6]/55'
+          }`}
+        />
+      </div>
+
       {/* Toast Notification */}
       {toastMessage && (
-        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-bounce">
-          <div className="px-4 py-2 rounded-xl bg-neutral-900/95 border border-purple-400 text-white text-xs sm:text-sm font-bold shadow-xl backdrop-blur-md">
+        <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-bounce w-max max-w-[92vw]">
+          <div
+            className={`px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-extrabold shadow-xl backdrop-blur-md text-center ${
+              settings.darkMode
+                ? 'bg-gradient-to-r from-[#26183f]/95 via-[#1d2e2b]/95 to-[#26183f]/95 border-[#6ee7b7]/70 text-[#d1fae5]'
+                : 'bg-gradient-to-r from-[#4b2775]/95 via-[#21614b]/95 to-[#4b2775]/95 border-[#d8b4fe] text-[#f5f3ff]'
+            }`}
+          >
             {toastMessage}
           </div>
         </div>
@@ -580,16 +558,16 @@ export default function App() {
         username={currentAccount?.username}
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
-        onOpenVocab={() => setIsVocabOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenProfile={() => setIsLoginOpen(true)}
         darkMode={settings.darkMode}
         hardMode={settings.hardMode}
+        gameStates={gameStates}
       />
 
       {/* Main Container: 3 Columns on Desktop, 1 Column on Mobile */}
-      <div className="w-full max-w-7xl mx-auto px-2 sm:px-4 lg:px-6 flex-1 flex flex-col justify-between min-h-0">
-        <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-center lg:justify-between gap-4 xl:gap-8 my-auto w-full py-1">
+      <div className="w-full max-w-7xl mx-auto px-1.5 sm:px-4 lg:px-6 flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-1 sm:gap-3 xl:gap-8 w-full min-h-0 py-0.5 sm:py-1">
           {/* Desktop Right Sidebar: Daily Player Hub & Status */}
           <DesktopDashboard
             stats={stats}
@@ -607,10 +585,10 @@ export default function App() {
           />
 
           {/* Center Column: Game Board & Persian Keyboard */}
-          <main className="flex-1 flex flex-col items-center justify-between w-full max-w-xl mx-auto min-h-0">
-            {/* Mobile Top Ad Banner (only on < lg) */}
+          <main className="flex-1 flex flex-col items-center justify-between w-full max-w-xl mx-auto h-full min-h-0">
+            {/* Mobile Compact Top Ad Strip (only on < lg) */}
             {settings.showAds && (
-              <div className="lg:hidden w-full">
+              <div className="lg:hidden w-full shrink-0">
                 <AdBanner
                   position="top"
                   darkMode={settings.darkMode}
@@ -620,7 +598,7 @@ export default function App() {
             )}
 
             {/* Game Board */}
-            <div className="flex-1 flex items-center justify-center py-1 sm:py-2 min-h-0 w-full my-auto">
+            <div className="flex-1 flex items-center justify-center py-0.5 sm:py-1.5 min-h-0 w-full">
               <GameBoard
                 wordLength={currentLength}
                 guesses={currentGame.guesses}
@@ -634,7 +612,7 @@ export default function App() {
             </div>
 
             {/* Persian Virtual Keyboard */}
-            <div className="w-full pb-2">
+            <div className="w-full pb-1 sm:pb-2 shrink-0">
               <PersianKeyboard
                 onChar={handleChar}
                 onEnter={handleEnter}
@@ -644,17 +622,6 @@ export default function App() {
                 darkMode={settings.darkMode}
                 highContrast={settings.highContrast}
               />
-
-              {/* Mobile Bottom Ad Banner (only on < lg) */}
-              {settings.showAds && (
-                <div className="lg:hidden w-full">
-                  <AdBanner
-                    position="bottom"
-                    darkMode={settings.darkMode}
-                    onNotify={showToast}
-                  />
-                </div>
-              )}
             </div>
           </main>
 
@@ -664,7 +631,6 @@ export default function App() {
             hardMode={settings.hardMode}
             showAds={settings.showAds}
             onOpenHelp={() => setIsHelpOpen(true)}
-            onOpenVocab={() => setIsVocabOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
             onNotify={showToast}
           />
@@ -678,24 +644,14 @@ export default function App() {
         onClose={() => setIsLoginOpen(false)}
         currentUsername={currentAccount?.username}
         onLogout={handleLogout}
+        darkMode={settings.darkMode}
       />
 
       <PreGameAdModal
         isOpen={isPreGameAdOpen}
         onProceed={() => setIsPreGameAdOpen(false)}
         username={currentAccount?.username}
-      />
-
-      <VocabularyModal
-        isOpen={isVocabOpen}
-        onClose={() => setIsVocabOpen(false)}
-        words4={words4}
-        words5={words5}
-        words6={words6}
-        onSaveWord={handleSaveWord}
-        onDeleteWord={handleDeleteWord}
-        onResetVocabulary={handleResetVocabulary}
-        onImportVocabulary={handleImportVocabulary}
+        darkMode={settings.darkMode}
       />
 
       <StatsModal
@@ -708,6 +664,7 @@ export default function App() {
         evaluations={currentGame.evaluations}
         wordLength={currentLength}
         hardMode={settings.hardMode}
+        darkMode={settings.darkMode}
       />
 
       <SettingsModal
@@ -720,7 +677,11 @@ export default function App() {
         canChangeHardMode={currentGame.guesses.length === 0}
       />
 
-      <HelpModal isOpen={isHelpOpen} onClose={() => setIsHelpOpen(false)} />
+      <HelpModal
+        isOpen={isHelpOpen}
+        onClose={() => setIsHelpOpen(false)}
+        darkMode={settings.darkMode}
+      />
     </div>
   );
 }

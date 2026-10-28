@@ -18,42 +18,69 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   canChangeHardMode,
 }) => {
   if (!isOpen) return null;
+  const darkMode = settings.darkMode;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="تنظیمات کلمباز"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-md rounded-2xl bg-neutral-900 border border-purple-500/40 p-5 sm:p-6 text-white shadow-2xl">
+      <div
+        className={`relative w-full max-w-md rounded-2xl border-2 p-5 sm:p-6 shadow-2xl transition-colors ${
+          darkMode
+            ? 'bg-gradient-to-br from-[#23173b] via-[#1d2236] to-[#152b26] border-[#543c7d]/75 text-[#f2edfa]'
+            : 'bg-gradient-to-br from-[#e6f3ec] via-[#eef6f1] to-[#ece4f6] border-[#82b59d] text-[#17382b]'
+        }`}
+      >
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-white/10 mb-4">
+        <div
+          className={`flex items-center justify-between pb-3 border-b mb-4 ${
+            darkMode ? 'border-[#4c3773]/60' : 'border-[#86b8a1]/60'
+          }`}
+        >
           <h2 className="text-lg font-bold font-['Lalezar',sans-serif]">
             تنظیمات بازی کلمباز 🥬
           </h2>
           <button
             onClick={onClose}
             aria-label="بستن تنظیمات"
-            className="p-1 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10"
+            className={`p-1 rounded-lg transition-colors ${
+              darkMode
+                ? 'text-[#d8b4fe] hover:text-white hover:bg-[#31214f]/60'
+                : 'text-[#215c46] hover:text-[#123628] hover:bg-[#cfe5da]/60'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
         </div>
 
         {/* Options List */}
-        <div className="space-y-4 divide-y divide-white/5">
+        <div
+          className={`space-y-4 divide-y ${
+            darkMode ? 'divide-[#463269]/60' : 'divide-[#88b8a2]/60'
+          }`}
+        >
           {/* Hard Mode */}
           <div className="flex items-center justify-between pt-3 first:pt-0">
             <div className="space-y-0.5 max-w-[78%]">
-              <span className="block text-sm font-bold text-white">
+              <span className="block text-sm font-extrabold">
                 حالت سخت (Hard Mode)
               </span>
-              <p className="text-[11px] text-neutral-400 leading-snug">
+              <p
+                className={`text-[11px] font-medium leading-snug ${
+                  darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                }`}
+              >
                 هر نشانه‌ای که کشف شود (سبز یا زرد) باید حتماً در حدس‌های بعدی به کار گرفته شود.
               </p>
               {!canChangeHardMode && (
-                <p className="text-[10px] text-amber-400 mt-1">
+                <p
+                  className={`text-[10px] font-bold mt-1 ${
+                    darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                  }`}
+                >
                   حالت سخت فقط در آغاز بازی و قبل از ثبت حدس قابل تغییر است.
                 </p>
               )}
@@ -67,7 +94,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onUpdateSettings({ hardMode: !settings.hardMode })
               }
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden ${
-                settings.hardMode ? 'bg-emerald-600' : 'bg-neutral-700'
+                settings.hardMode
+                  ? darkMode
+                    ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
+                    : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
+                  : darkMode
+                  ? 'bg-[#1c132e] border border-[#543c7d]'
+                  : 'bg-[#d5e8df] border border-[#7eb39a]'
               } ${!canChangeHardMode ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}`}
             >
               <div
@@ -81,16 +114,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Dark Mode */}
           <div className="flex items-center justify-between pt-3">
             <div className="space-y-0.5">
-              <span className="block text-sm font-bold text-white flex items-center gap-1.5">
+              <span className="block text-sm font-extrabold flex items-center gap-1.5">
                 {settings.darkMode ? (
-                  <Moon className="w-4 h-4 text-purple-400" />
+                  <Moon className="w-4 h-4 text-[#86efac]" />
                 ) : (
-                  <Sun className="w-4 h-4 text-amber-400" />
+                  <Sun className="w-4 h-4 text-[#5c328c]" />
                 )}
-                حالت شب (تم تاریک)
+                حالت شب (طیف‌های سبز و بنفش ملایم)
               </span>
-              <p className="text-[11px] text-neutral-400">
-                پوسته کلمی بنفش تیره برای دید بهتر در محیط‌های کم‌نور.
+              <p
+                className={`text-[11px] font-medium ${
+                  darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                }`}
+              >
+                ترکیب چشم‌نواز سایه‌های متنوع بنفش و سبز در هر دو حالت تاریک و روشن.
               </p>
             </div>
 
@@ -101,7 +138,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onUpdateSettings({ darkMode: !settings.darkMode })
               }
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
-                settings.darkMode ? 'bg-purple-600' : 'bg-neutral-700'
+                settings.darkMode
+                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
+                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
               }`}
             >
               <div
@@ -115,15 +154,23 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Sound Effects */}
           <div className="flex items-center justify-between pt-3">
             <div className="space-y-0.5">
-              <span className="block text-sm font-bold text-white flex items-center gap-1.5">
+              <span className="block text-sm font-extrabold flex items-center gap-1.5">
                 {settings.soundEnabled ? (
-                  <Volume2 className="w-4 h-4 text-emerald-400" />
+                  <Volume2
+                    className={`w-4 h-4 ${
+                      darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+                    }`}
+                  />
                 ) : (
-                  <VolumeX className="w-4 h-4 text-neutral-400" />
+                  <VolumeX className="w-4 h-4 opacity-60" />
                 )}
                 جلوه‌های صوتی
               </span>
-              <p className="text-[11px] text-neutral-400">
+              <p
+                className={`text-[11px] font-medium ${
+                  darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                }`}
+              >
                 صدای فشردن کلیدها و افکت پیروزی.
               </p>
             </div>
@@ -135,7 +182,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onUpdateSettings({ soundEnabled: !settings.soundEnabled })
               }
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
-                settings.soundEnabled ? 'bg-emerald-600' : 'bg-neutral-700'
+                settings.soundEnabled
+                  ? darkMode
+                    ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
+                    : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
+                  : darkMode
+                  ? 'bg-[#1c132e] border border-[#543c7d]'
+                  : 'bg-[#d5e8df] border border-[#7eb39a]'
               }`}
             >
               <div
@@ -149,11 +202,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* High Contrast Mode */}
           <div className="flex items-center justify-between pt-3">
             <div className="space-y-0.5">
-              <span className="block text-sm font-bold text-white flex items-center gap-1.5">
-                <Eye className="w-4 h-4 text-teal-400" />
+              <span className="block text-sm font-extrabold flex items-center gap-1.5">
+                <Eye
+                  className={`w-4 h-4 ${
+                    darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                  }`}
+                />
                 کنتراست بالا
               </span>
-              <p className="text-[11px] text-neutral-400">
+              <p
+                className={`text-[11px] font-medium ${
+                  darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                }`}
+              >
                 تقویت تفکیک رنگ خانه‌های سبز و نارنجی.
               </p>
             </div>
@@ -165,7 +226,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onUpdateSettings({ highContrast: !settings.highContrast })
               }
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
-                settings.highContrast ? 'bg-teal-600' : 'bg-neutral-700'
+                settings.highContrast
+                  ? darkMode
+                    ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
+                    : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
+                  : darkMode
+                  ? 'bg-[#1c132e] border border-[#543c7d]'
+                  : 'bg-[#d5e8df] border border-[#7eb39a]'
               }`}
             >
               <div
@@ -179,11 +246,19 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {/* Show Ads / Sponsors */}
           <div className="flex items-center justify-between pt-3">
             <div className="space-y-0.5">
-              <span className="block text-sm font-bold text-white flex items-center gap-1.5">
-                <Megaphone className="w-4 h-4 text-amber-400" />
+              <span className="block text-sm font-extrabold flex items-center gap-1.5">
+                <Megaphone
+                  className={`w-4 h-4 ${
+                    darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+                  }`}
+                />
                 نمایش بنر حامیان مالی
               </span>
-              <p className="text-[11px] text-neutral-400">
+              <p
+                className={`text-[11px] font-medium ${
+                  darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                }`}
+              >
                 فضای تبلیغات استاندارد برای پشتیبانی از نگهداری رایگان کلمباز.
               </p>
             </div>
@@ -195,7 +270,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 onUpdateSettings({ showAds: !settings.showAds })
               }
               className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
-                settings.showAds ? 'bg-amber-600' : 'bg-neutral-700'
+                settings.showAds
+                  ? darkMode
+                    ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
+                    : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
+                  : darkMode
+                  ? 'bg-[#1c132e] border border-[#543c7d]'
+                  : 'bg-[#d5e8df] border border-[#7eb39a]'
               }`}
             >
               <div
@@ -208,7 +289,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         </div>
 
         {/* Footer info */}
-        <div className="mt-6 pt-3 border-t border-white/10 text-center text-[11px] text-neutral-500">
+        <div
+          className={`mt-6 pt-3 border-t text-center text-[11px] font-bold ${
+            darkMode
+              ? 'border-[#4c3773]/60 text-[#d8b4fe]'
+              : 'border-[#86b8a1]/60 text-[#215c46]'
+          }`}
+        >
           کلمباز (Kalabaz) - نگارش ۲.۰ • بازی روزانه کلمات کلمی
         </div>
       </div>

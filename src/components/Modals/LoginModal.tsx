@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
-import { User, Lock, KeyRound, UserPlus, LogIn, X, AlertCircle } from 'lucide-react';
+import { User, Lock, KeyRound, UserPlus, LogIn, X, AlertCircle, Loader2 } from 'lucide-react';
 import { UserAccount } from '../../types';
+import { apiLogin, apiSignup } from '../../utils/api';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -8,6 +9,7 @@ interface LoginModalProps {
   onClose: () => void;
   currentUsername?: string;
   onLogout?: () => void;
+  darkMode?: boolean;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -16,16 +18,18 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   onClose,
   currentUsername,
   onLogout,
+  darkMode = true,
 }) => {
   const [tab, setTab] = useState<'login' | 'signup'>('login');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   if (!isOpen) return null;
 
-  // Retrieve accounts from localStorage
+  // Retrieve cached accounts from localStorage for offline fallback / legacy migration
   const getStoredAccounts = (): { [username: string]: UserAccount } => {
     try {
       const data = localStorage.getItem('kalabaz_accounts');
@@ -41,7 +45,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     } catch {}
   };
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -55,25 +59,40 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    const accounts = getStoredAccounts();
-    const existing = accounts[cleanUsername];
-
-    if (!existing) {
-      setErrorMessage('حساب کاربری با این نام یافت نشد. می‌توانید ثبت‌نام کنید.');
-      return;
+    setIsSubmitting(true);
+    try {
+      const { account } = await apiLogin(cleanUsername, password);
+      const accounts = getStoredAccounts();
+      accounts[account.username] = account;
+      saveStoredAccounts(accounts);
+      onLoginSuccess(account);
+      onClose();
+    } catch (err: any) {
+      // Check if user had a legacy localStorage account that needs one-time migration to SQLite
+      const localAccounts = getStoredAccounts();
+      const legacy = localAccounts[cleanUsername];
+      if (legacy && legacy.password === password) {
+        try {
+          const { account } = await apiSignup(
+            cleanUsername,
+            password,
+            legacy.stats,
+            legacy.gameStates
+          );
+          localAccounts[account.username] = account;
+          saveStoredAccounts(localAccounts);
+          onLoginSuccess(account);
+          onClose();
+          return;
+        } catch {}
+      }
+      setErrorMessage(err?.message || 'خطا در ورود به حساب کاربری.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    if (existing.password !== password) {
-      setErrorMessage('رمز عبور وارد شده نادرست است.');
-      return;
-    }
-
-    // Success
-    onLoginSuccess(existing);
-    onClose();
   };
 
-  const handleSignup = (e: React.FormEvent) => {
+  const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorMessage('');
 
@@ -95,32 +114,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       return;
     }
 
-    const accounts = getStoredAccounts();
-    if (accounts[cleanUsername]) {
-      setErrorMessage('این نام کاربری قبلاً ثبت شده است. لطفاً وارد شوید.');
-      return;
+    setIsSubmitting(true);
+    try {
+      const { account } = await apiSignup(cleanUsername, password);
+      const accounts = getStoredAccounts();
+      accounts[account.username] = account;
+      saveStoredAccounts(accounts);
+      onLoginSuccess(account);
+      onClose();
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'خطا در ایجاد حساب کاربری.');
+    } finally {
+      setIsSubmitting(false);
     }
-
-    const newAccount: UserAccount = {
-      username: cleanUsername,
-      password: password,
-      stats: {
-        gamesPlayed: 0,
-        gamesWon: 0,
-        currentStreak: 0,
-        maxStreak: 0,
-        lastPlayedDate: '',
-        guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
-      },
-      gameStates: {},
-      createdAt: new Date().toISOString(),
-    };
-
-    accounts[cleanUsername] = newAccount;
-    saveStoredAccounts(accounts);
-
-    onLoginSuccess(newAccount);
-    onClose();
   };
 
   return (
@@ -128,15 +134,25 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="ورود و ثبت‌نام حساب کلمباز"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/80 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
     >
-      <div className="relative w-full max-w-sm rounded-2xl bg-neutral-900 border border-purple-500/40 p-5 sm:p-6 text-white shadow-2xl">
+      <div
+        className={`relative w-full max-w-sm rounded-2xl border-2 p-5 sm:p-6 shadow-2xl ${
+          darkMode
+            ? 'bg-gradient-to-br from-[#23173b] via-[#1d2236] to-[#152b26] border-[#543c7d]/75 text-[#f2edfa]'
+            : 'bg-gradient-to-br from-[#e6f3ec] via-[#eef6f1] to-[#ece4f6] border-[#82b59d] text-[#17382b]'
+        }`}
+      >
         {/* Close Button if already has account */}
         {currentUsername && (
           <button
             onClick={onClose}
             aria-label="بستن پنجره"
-            className="absolute top-4 left-4 p-1.5 rounded-lg text-neutral-400 hover:text-white hover:bg-white/10"
+            className={`absolute top-4 left-4 p-1.5 rounded-lg transition-colors ${
+              darkMode
+                ? 'text-[#d8b4fe] hover:text-white hover:bg-[#31214f]/60'
+                : 'text-[#215c46] hover:text-[#123628] hover:bg-[#cfe5da]/60'
+            }`}
           >
             <X className="w-5 h-5" />
           </button>
@@ -144,28 +160,49 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Header */}
         <div className="text-center mb-5">
-          <div className="w-14 h-14 mx-auto mb-2 rounded-2xl bg-gradient-to-br from-emerald-600 to-purple-700 flex items-center justify-center text-3xl shadow-lg ring-4 ring-emerald-400/20">
+          <div
+            className={`w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl shadow-lg border-2 ${
+              darkMode
+                ? 'bg-gradient-to-br from-[#237a5b] to-[#3f2b69] border-[#6ee7b7]/70'
+                : 'bg-gradient-to-br from-[#5c328c] to-[#266b52] border-[#482373]'
+            }`}
+          >
             🥬
           </div>
-          <h2 className="text-xl font-black text-white font-['Lalezar',sans-serif]">
+          <h2 className="text-xl font-black font-['Lalezar',sans-serif]">
             حساب کاربری کلمباز
           </h2>
-          <p className="text-xs text-neutral-400 mt-1">
+          <p
+            className={`text-xs font-semibold mt-1 ${
+              darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+            }`}
+          >
             ورود با نام و رمز عبور برای ذخیره و پیگیری استریک و پیشرفت
           </p>
         </div>
 
         {/* Currently logged-in indicator */}
         {currentUsername && (
-          <div className="mb-4 p-2.5 rounded-xl bg-purple-950/60 border border-purple-600/40 flex items-center justify-between text-xs">
-            <span className="text-neutral-300">
-              حساب فعال: <strong className="text-emerald-300">{currentUsername}</strong>
+          <div
+            className={`mb-4 p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+              darkMode
+                ? 'bg-[#26193d]/80 border-[#543c7d] text-[#f2edfa]'
+                : 'bg-[#dfeee6] border-[#82b59d] text-[#17382b]'
+            }`}
+          >
+            <span>
+              حساب فعال:{' '}
+              <strong
+                className={darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'}
+              >
+                {currentUsername}
+              </strong>
             </span>
             {onLogout && (
               <button
                 type="button"
                 onClick={onLogout}
-                className="px-2 py-1 rounded bg-rose-950/80 hover:bg-rose-900 border border-rose-800 text-rose-300 font-bold"
+                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold"
               >
                 خروج
               </button>
@@ -174,17 +211,27 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         )}
 
         {/* Tabs: Login / Sign Up */}
-        <div className="flex rounded-xl bg-black/40 p-1 mb-4 border border-white/10">
+        <div
+          className={`flex rounded-xl p-1 mb-4 border-2 ${
+            darkMode
+              ? 'bg-[#1a122b]/90 border-[#4b3570]/75'
+              : 'bg-[#d9ece2]/90 border-[#85b8a0]/80'
+          }`}
+        >
           <button
             type="button"
             onClick={() => {
               setTab('login');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
               tab === 'login'
-                ? 'bg-emerald-600 text-white shadow-xs'
-                : 'text-neutral-400 hover:text-white'
+                ? darkMode
+                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] text-white shadow-xs'
+                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] text-white shadow-xs'
+                : darkMode
+                ? 'text-[#d8b4fe] hover:text-white'
+                : 'text-[#1c4233] hover:text-[#122e22]'
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -196,10 +243,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setTab('signup');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-bold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
               tab === 'signup'
-                ? 'bg-purple-600 text-white shadow-xs'
-                : 'text-neutral-400 hover:text-white'
+                ? darkMode
+                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] text-white shadow-xs'
+                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] text-white shadow-xs'
+                : darkMode
+                ? 'text-[#d8b4fe] hover:text-white'
+                : 'text-[#1c4233] hover:text-[#122e22]'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -209,8 +260,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Error message */}
         {errorMessage && (
-          <div className="mb-3 p-2 rounded-xl bg-rose-950/70 border border-rose-800 flex items-center gap-2 text-rose-200 text-xs">
-            <AlertCircle className="w-4 h-4 shrink-0 text-rose-400" />
+          <div className="mb-3 p-2.5 rounded-xl bg-rose-600 text-white flex items-center gap-2 text-xs font-bold">
+            <AlertCircle className="w-4 h-4 shrink-0" />
             <span>{errorMessage}</span>
           </div>
         )}
@@ -220,7 +271,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div>
             <label
               htmlFor="auth-username"
-              className="block text-xs font-semibold text-emerald-300 mb-1"
+              className={`block text-xs font-extrabold mb-1 ${
+                darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+              }`}
             >
               نام / نام کاربری:
             </label>
@@ -233,9 +286,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 placeholder="مثلاً: سهراب"
                 maxLength={30}
                 required
-                className="w-full pl-3 pr-9 py-2 rounded-xl bg-black/50 border border-purple-500/40 text-white text-xs focus:outline-hidden focus:border-emerald-400 text-right"
+                className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
+                  darkMode
+                    ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
+                    : 'bg-[#f6f3fa] border-[#82b59d] text-[#17382b] placeholder-[#527a68] focus:border-[#5c328c]'
+                }`}
               />
-              <User className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <User
+                className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
+                  darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                }`}
+              />
             </div>
           </div>
 
@@ -243,7 +304,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div>
             <label
               htmlFor="auth-password"
-              className="block text-xs font-semibold text-emerald-300 mb-1"
+              className={`block text-xs font-extrabold mb-1 ${
+                darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+              }`}
             >
               رمز عبور:
             </label>
@@ -255,9 +318,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="حداقل ۴ نویسه"
                 required
-                className="w-full pl-3 pr-9 py-2 rounded-xl bg-black/50 border border-purple-500/40 text-white text-xs focus:outline-hidden focus:border-emerald-400 text-right"
+                className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
+                  darkMode
+                    ? 'bg-[#172e28]/90 border-[#3d8b73]/75 text-white placeholder-[#82b5a5] focus:border-[#d8b4fe]'
+                    : 'bg-[#eef7f2] border-[#9b7ec7] text-[#17382b] placeholder-[#68548c] focus:border-[#21664d]'
+                }`}
               />
-              <Lock className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2" />
+              <Lock
+                className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
+                  darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+                }`}
+              />
             </div>
           </div>
 
@@ -266,7 +337,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <div className="animate-fade-in">
               <label
                 htmlFor="auth-confirm-password"
-                className="block text-xs font-semibold text-emerald-300 mb-1"
+                className={`block text-xs font-extrabold mb-1 ${
+                  darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                }`}
               >
                 تکرار رمز عبور:
               </label>
@@ -278,9 +351,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="تکرار رمز عبور"
                   required
-                  className="w-full pl-3 pr-9 py-2 rounded-xl bg-black/50 border border-purple-500/40 text-white text-xs focus:outline-hidden focus:border-emerald-400 text-right"
+                  className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
+                    darkMode
+                      ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
+                      : 'bg-[#f6f3fa] border-[#82b59d] text-[#17382b] placeholder-[#527a68] focus:border-[#5c328c]'
+                  }`}
                 />
-                <KeyRound className="w-4 h-4 text-neutral-400 absolute right-3 top-1/2 -translate-y-1/2" />
+                <KeyRound
+                  className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
+                    darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                  }`}
+                />
               </div>
             </div>
           )}
@@ -289,9 +370,19 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <div className="pt-2">
             <button
               type="submit"
-              className="w-full py-2.5 px-4 rounded-xl font-bold bg-gradient-to-r from-emerald-600 to-purple-700 hover:from-emerald-500 hover:to-purple-600 text-white shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm"
+              disabled={isSubmitting}
+              className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-white shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-60 ${
+                darkMode
+                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] hover:from-[#298f6b] hover:to-[#4c357d]'
+                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] hover:from-[#6b3ba1] hover:to-[#2d7d60]'
+              }`}
             >
-              {tab === 'login' ? (
+              {isSubmitting ? (
+                <>
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                  <span>در حال ارتباط با سرور...</span>
+                </>
+              ) : tab === 'login' ? (
                 <>
                   <LogIn className="w-4 h-4" />
                   <span>ورود به حساب</span>

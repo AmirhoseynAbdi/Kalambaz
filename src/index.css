@@ -107,21 +107,22 @@
   transform: rotateX(180deg);
 }
 
-/* Custom scrollbars */
+/* Custom scrollbars with soothing purple & green shades */
 ::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
+  width: 7px;
+  height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(0, 0, 0, 0.1);
+  background: rgba(34, 23, 56, 0.14);
 }
 
 ::-webkit-scrollbar-thumb {
-  background: rgba(107, 33, 168, 0.4);
-  border-radius: 4px;
+  background: linear-gradient(180deg, #68469c 0%, #2a7a60 100%);
+  border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: rgba(107, 33, 168, 0.7);
+  background: linear-gradient(180deg, #7c56b8 0%, #349475 100%);
 }
+

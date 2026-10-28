@@ -34,7 +34,7 @@ export interface PlayerStats {
 
 export interface UserAccount {
   username: string;
-  password: string;
+  password?: string;
   stats: PlayerStats;
   gameStates: { [len: number]: DailyGameState };
   createdAt: string;

@@ -7,10 +7,22 @@ export function normalizePersian(text: string): string {
   if (!text) return '';
   return text
     .trim()
-    .replace(/ي/g, 'ی')
-    .replace(/ك/g, 'ک')
+    .replace(/[يیى]/g, 'ی')
+    .replace(/[كک]/g, 'ک')
+    .replace(/ة/g, 'ه')
+    .replace(/[\u064B-\u065F\u0670]/g, '') // remove Arabic diacritics/harakat
     .replace(/[\u200B-\u200D\uFEFF]/g, '') // remove invisible spaces/joiners
     .replace(/\s+/g, '');
+}
+
+/**
+ * Loose normalization that also equates آ/أ/إ with ا and ئ/ؤ with ی/و for forgiving dictionary lookup.
+ */
+export function normalizeLoosePersian(text: string): string {
+  return normalizePersian(text)
+    .replace(/[آأإ]/g, 'ا')
+    .replace(/ئ/g, 'ی')
+    .replace(/ؤ/g, 'و');
 }
 
 /**
@@ -180,23 +192,106 @@ export function getWordPrefix(length: 4 | 5 | 6): 'four' | 'five' | 'six' {
 
 /**
  * Ensures every entry in a word list has a sequential counter id ("four1", "four2", etc.)
- * and strips any legacy fields.
+ * and normalizes Persian characters while deduplicating identical words.
  */
 export function normalizeWordList(
   length: 4 | 5 | 6,
-  rawList: Array<{ id?: string; word: string }>
+  rawList: Array<{ id?: string; word: string } | string>
 ): WordEntry[] {
   const prefix = getWordPrefix(length);
-  return rawList
-    .map((item) => ({
-      word: normalizePersian(item?.word || ''),
-    }))
-    .filter((item) => item.word.length === length)
-    .map((item, idx) => ({
-      id: `${prefix}${idx + 1}`,
-      word: item.word,
-    }));
+  const seen = new Set<string>();
+  const cleaned: { word: string }[] = [];
+
+  for (const item of rawList || []) {
+    const word = normalizePersian(typeof item === 'string' ? item : item?.word || '');
+    if (word.length === length && !seen.has(word)) {
+      seen.add(word);
+      cleaned.push({ word });
+    }
+  }
+
+  return cleaned.map((item, idx) => ({
+    id: `${prefix}${idx + 1}`,
+    word: item.word,
+  }));
 }
+
+/**
+ * Merges two word lists (e.g., eligible guess words and daily target words) and normalizes them.
+ */
+export function mergeWordLists(
+  length: 4 | 5 | 6,
+  primaryList: Array<{ id?: string; word: string } | string>,
+  secondaryList?: Array<{ id?: string; word: string } | string> | null
+): WordEntry[] {
+  const combined = [...(primaryList || []), ...(secondaryList || [])];
+  return normalizeWordList(length, combined);
+}
+
+const vocabularySetCache = new WeakMap<
+  object,
+  { strict: Set<string>; loose: Set<string> }
+>();
+
+function getOrBuildVocabularySets(
+  list: Array<{ id?: string; word: string } | string>
+): { strict: Set<string>; loose: Set<string> } {
+  const cached = vocabularySetCache.get(list);
+  if (cached) return cached;
+
+  const strict = new Set<string>();
+  const loose = new Set<string>();
+
+  for (let i = 0; i < list.length; i++) {
+    const entry = list[i];
+    const rawWord = typeof entry === 'string' ? entry : entry?.word;
+    if (!rawWord) continue;
+    const normEntry = normalizePersian(rawWord);
+    if (!normEntry) continue;
+    strict.add(normEntry);
+    const looseEntry = normalizeLoosePersian(rawWord);
+    if (looseEntry.length === normEntry.length) {
+      loose.add(looseEntry);
+    }
+  }
+
+  const built = { strict, loose };
+  vocabularySetCache.set(list, built);
+  return built;
+}
+
+/**
+ * Checks whether a guessed word exists in the eligible guess word list or the daily puzzle target word list.
+ * Uses WeakMap-cached O(1) Set lookups for instant validation across 85,000+ words.
+ */
+export function isWordInVocabulary(
+  guess: string,
+  eligibleGuessList: Array<{ id?: string; word: string } | string>,
+  dailyTargetList?: Array<{ id?: string; word: string } | string>
+): boolean {
+  const normGuess = normalizePersian(guess);
+  if (!normGuess) return false;
+  const looseGuess = normalizeLoosePersian(guess);
+  const canCheckLoose = looseGuess.length === normGuess.length;
+
+  if (eligibleGuessList && eligibleGuessList.length > 0) {
+    const { strict, loose } = getOrBuildVocabularySets(eligibleGuessList);
+    if (strict.has(normGuess) || (canCheckLoose && loose.has(looseGuess))) {
+      return true;
+    }
+  }
+
+  if (dailyTargetList && dailyTargetList.length > 0) {
+    const { strict, loose } = getOrBuildVocabularySets(dailyTargetList);
+    if (strict.has(normGuess) || (canCheckLoose && loose.has(looseGuess))) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+const normalizedListCache = new WeakMap<object, WordEntry[]>();
 
 /**
  * Selects a deterministic daily 4-letter, 5-letter, or 6-letter word based on date and length
@@ -209,8 +304,20 @@ export function getDailyWord(
   wordsList: WordEntry[]
 ): WordEntry {
   const prefix = getWordPrefix(length);
+  let cleanList: WordEntry[];
+  if (wordsList && typeof wordsList === 'object') {
+    const cached = normalizedListCache.get(wordsList);
+    if (cached) {
+      cleanList = cached;
+    } else {
+      cleanList = normalizeWordList(length, wordsList);
+      normalizedListCache.set(wordsList, cleanList);
+    }
+  } else {
+    cleanList = normalizeWordList(length, []);
+  }
 
-  if (!wordsList || wordsList.length === 0) {
+  if (cleanList.length === 0) {
     return {
       id: `${prefix}1`,
       word: length === 4 ? 'واژه' : length === 5 ? 'باران' : 'خورشید',
@@ -226,15 +333,15 @@ export function getDailyWord(
   }
 
   const positiveHash = Math.abs(hash);
-  const counterNum = (positiveHash % wordsList.length) + 1;
+  const counterNum = (positiveHash % cleanList.length) + 1;
   const targetId = `${prefix}${counterNum}`;
 
-  const matchedById = wordsList.find((w) => w.id === targetId);
+  const matchedById = cleanList.find((w) => w.id === targetId);
   if (matchedById) {
     return { id: matchedById.id, word: matchedById.word };
   }
 
-  const fallback = wordsList[counterNum - 1] || wordsList[0];
+  const fallback = cleanList[counterNum - 1] || cleanList[0];
   return {
     id: fallback.id || targetId,
     word: fallback.word,
