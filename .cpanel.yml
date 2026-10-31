@@ -4,8 +4,8 @@ deployment:
     - export DEPLOYPATH=$HOME/public_html/
     - export PATH=/opt/alt/alt-nodejs22/root/usr/bin:/opt/alt/alt-nodejs20/root/usr/bin:/opt/alt/alt-nodejs18/root/usr/bin:/usr/local/bin:$PATH
     - /bin/mkdir -p $DEPLOYPATH
-    - if [ ! -f "dist/index.html" ] && command -v npm >/dev/null 2>&1; then npm install --include=dev && npm run build || true; fi
-    - if [ -d "dist" ]; then /bin/cp -Rf dist/* $DEPLOYPATH; fi
-    - if [ -f "public/.htaccess" ]; then /bin/cp -f public/.htaccess $DEPLOYPATH; fi
-
-
+    - if [ -f "$DEPLOYPATH/api/db-config.php" ]; then /bin/cp -f "$DEPLOYPATH/api/db-config.php" /tmp/kalambaz_db_config.php.bak; fi
+    - if [ ! -f "dist/index.html" ] && command -v npm >/dev/null 2>&1; then npm install --legacy-peer-deps --include=dev && npm run build || true; fi
+    - if [ -d "dist" ] && [ -f "dist/index.html" ]; then /bin/rm -rf $DEPLOYPATH/assets && /bin/cp -Rf dist/* $DEPLOYPATH; fi
+    - if [ -f "public/.htaccess" ]; then /bin/cp -f public/.htaccess $DEPLOYPATH/.htaccess; fi
+    - if [ -f "/tmp/kalambaz_db_config.php.bak" ]; then /bin/mkdir -p "$DEPLOYPATH/api" && /bin/mv -f /tmp/kalambaz_db_config.php.bak "$DEPLOYPATH/api/db-config.php"; fi

@@ -1,0 +1,65 @@
+name: Build Production Bundle for cPanel
+
+on:
+  push:
+    branches:
+      - main
+
+permissions:
+  contents: write
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Node.js 20
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Install dependencies
+        run: npm install --legacy-peer-deps
+
+      - name: Run unit tests
+        run: npx tsx --test src/game/wordleLogic.test.ts
+
+      - name: Build production bundle (dist)
+        run: |
+          npm run build
+          rm -rf dist/assets/aistudio
+          if [ -f "public/.htaccess" ]; then cp -f public/.htaccess dist/.htaccess; fi
+
+      - name: Commit and push updated dist/ folder for cPanel Git Deployment
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -f dist/
+          if ! git diff --staged --quiet; then
+            git commit -m "chore(build): update compiled dist bundle for cPanel [skip ci]"
+            git push origin HEAD:main
+          else
+            echo "dist/ is already up to date."
+          fi
+
+      - name: Optional Direct FTP Deploy to cPanel (runs only if FTP_SERVER secret is configured)
+        if: ${{ env.FTP_SERVER != '' && env.FTP_USERNAME != '' && env.FTP_PASSWORD != '' }}
+        env:
+          FTP_SERVER: ${{ secrets.FTP_SERVER }}
+          FTP_USERNAME: ${{ secrets.FTP_USERNAME }}
+          FTP_PASSWORD: ${{ secrets.FTP_PASSWORD }}
+        uses: SamKirkland/FTP-Deploy-Action@v4.3.5
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          local-dir: ./dist/
+          server-dir: ./
+          exclude: |
+            **/.git*
+            **/.git*/**
+            **/api/storage/**
