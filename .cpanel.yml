@@ -1,0 +1,9 @@
+---
+deployment:
+  tasks:
+    - export DEPLOYPATH=$HOME/public_html/
+    - export PATH=/opt/alt/alt-nodejs22/root/usr/bin:/opt/alt/alt-nodejs20/root/usr/bin:/opt/alt/alt-nodejs18/root/usr/bin:/usr/local/bin:$PATH
+    - /bin/mkdir -p $DEPLOYPATH
+    - if command -v npm >/dev/null 2>&1; then npm install --include=dev && npm run build; fi
+    - if [ -d "dist" ]; then /bin/cp -Rf dist/* $DEPLOYPATH; fi
+    - if [ -f "dist/.htaccess" ]; then /bin/cp -f dist/.htaccess $DEPLOYPATH; elif [ -f "public/.htaccess" ]; then /bin/cp -f public/.htaccess $DEPLOYPATH; fi
