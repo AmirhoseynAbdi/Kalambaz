@@ -1,5 +1,5 @@
 import React from 'react';
-import { HelpCircle, Settings, ShieldAlert, Sparkles } from 'lucide-react';
+import { HelpCircle, Settings, ShieldAlert, Sparkles, Mail } from 'lucide-react';
 import { AdBanner } from './AdBanner';
 import { BANNER_ADS } from '../config/advertisements';
 
@@ -9,6 +9,7 @@ interface DesktopSponsorPanelProps {
   showAds: boolean;
   onOpenHelp: () => void;
   onOpenSettings: () => void;
+  onOpenContact: () => void;
   onNotify: (msg: string) => void;
 }
 
@@ -18,11 +19,12 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
   showAds,
   onOpenHelp,
   onOpenSettings,
+  onOpenContact,
   onNotify,
 }) => {
   return (
     <aside
-      aria-label="بخش حامیان مالی و امکانات کلمباز"
+      aria-label="بخش تبلیغات و امکانات کلمباز"
       className="relative z-10 hidden lg:flex flex-col gap-3 w-full max-w-[280px] xl:max-w-[310px]"
     >
       {/* Primary Sidebar Ad Module */}
@@ -32,6 +34,7 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
           adIndex={0}
           darkMode={darkMode}
           onNotify={onNotify}
+          onOpenContact={onOpenContact}
         />
       )}
 
@@ -49,7 +52,7 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
               darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
             }`}
           />
-          <span>امکانات و ابزارها</span>
+          <span>امکانات و ارتباط با ما</span>
         </div>
 
         <div className="flex flex-col gap-1.5">
@@ -76,7 +79,7 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
                   : 'bg-[#5c328c] text-white'
               }`}
             >
-              کلمباز
+              آموزش
             </span>
           </button>
 
@@ -104,6 +107,34 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
               }`}
             >
               سفارشی
+            </span>
+          </button>
+
+          <button
+            onClick={onOpenContact}
+            className={`w-full flex items-center justify-between px-3 py-2 rounded-xl text-xs font-bold transition-all border-2 ${
+              darkMode
+                ? 'bg-[#281b40]/85 hover:bg-[#342354]/90 border-[#563d82]/75 hover:border-[#6ee7b7]/70 text-[#f2edfa]'
+                : 'bg-[#e5f2eb]/95 hover:bg-[#d7ebe0] border-[#82b59d]/80 hover:border-[#5c328c] text-[#17382b]'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Mail
+                className={`w-4 h-4 ${
+                  darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                }`}
+              />
+              <span>تماس با ما</span>
+            </div>
+            <span
+              dir="ltr"
+              className={`text-[10px] font-mono font-extrabold px-1.5 py-0.5 rounded ${
+                darkMode
+                  ? 'bg-[#173b31] text-[#6ee7b7] border border-[#3d8b73]/50'
+                  : 'bg-[#5c328c] text-white'
+              }`}
+            >
+              @aha_hawk
             </span>
           </button>
         </div>
@@ -144,6 +175,7 @@ export const DesktopSponsorPanel: React.FC<DesktopSponsorPanelProps> = ({
             adIndex={1}
             darkMode={darkMode}
             onNotify={onNotify}
+            onOpenContact={onOpenContact}
           />
         </div>
       )}

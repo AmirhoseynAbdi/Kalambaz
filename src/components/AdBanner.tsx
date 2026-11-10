@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ExternalLink, X } from 'lucide-react';
+import { Mail, X } from 'lucide-react';
 import { BANNER_ADS, AdItem } from '../config/advertisements';
 
 interface AdBannerProps {
@@ -7,6 +7,7 @@ interface AdBannerProps {
   adIndex?: number;
   darkMode?: boolean;
   onNotify?: (message: string) => void;
+  onOpenContact?: () => void;
 }
 
 export const AdBanner: React.FC<AdBannerProps> = ({
@@ -14,26 +15,31 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   adIndex,
   darkMode = true,
   onNotify,
+  onOpenContact,
 }) => {
   const [closed, setClosed] = useState(false);
   const [selectedIndex] = useState(() => {
     if (typeof adIndex === 'number' && BANNER_ADS[adIndex]) {
       return adIndex;
     }
-    return Math.floor(Math.random() * BANNER_ADS.length);
+    return 0;
   });
 
   if (closed || BANNER_ADS.length === 0) return null;
 
   const ad: AdItem = BANNER_ADS[selectedIndex] || BANNER_ADS[0];
+  const email = ad.contactEmail || 'justhawkstuff@gmail.com';
 
   const handleClickAd = () => {
-    const msg =
-      ad.ctaUrl && ad.ctaUrl !== '#'
-        ? `حامی مالی کلمباز: «${ad.title}» (${ad.ctaText})`
-        : `با سپاس از توجه شما به حامی کلمباز: «${ad.title}» 🥬`;
+    if (onOpenContact) {
+      onOpenContact();
+      return;
+    }
+    try {
+      navigator.clipboard?.writeText(email);
+    } catch {}
     if (onNotify) {
-      onNotify(msg);
+      onNotify(`ایمیل سفارش تبلیغات کپی شد: ${email}`);
     }
   };
 
@@ -42,7 +48,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
     return (
       <aside
         role="complementary"
-        aria-label="جایگاه تبلیغات حامی کلمباز"
+        aria-label="جایگاه تبلیغات کلمباز"
         className={`w-full rounded-2xl border-2 p-4 shadow-md transition-all relative overflow-hidden backdrop-blur-sm ${
           darkMode
             ? 'bg-gradient-to-br from-[#25183e]/95 via-[#1e2038]/95 to-[#162e29]/95 border-[#543c7d]/70 text-[#f2edfa]'
@@ -69,14 +75,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
             }`}
           >
-            {ad.badgeText || 'حامی کلمباز'}
+            {ad.badgeText || 'پذیرش تبلیغات'}
           </span>
           <span
             className={`text-[10px] font-bold ${
               darkMode ? 'text-[#d8b4fe]' : 'text-[#215c46]'
             }`}
           >
-            فضای تبلیغاتی
+            جایگاه آگهی
           </span>
         </div>
 
@@ -102,36 +108,38 @@ export const AdBanner: React.FC<AdBannerProps> = ({
               darkMode ? 'text-[#d8c7f0]' : 'text-[#214f3d]'
             }`}
           >
-            {ad.tagline}
+            جهت سفارش و رزرو تبلیغات در کلمباز با ما در تماس باشید:
           </p>
         </div>
 
-        {ad.discountCode && (
-          <div
-            className={`my-2.5 p-2 rounded-xl border text-center ${
-              darkMode
-                ? 'bg-[#173830]/75 border-[#428f76]/60'
-                : 'bg-[#ebe3f6] border-[#a58fd1]'
+        <div
+          dir="ltr"
+          className={`my-2.5 p-2 rounded-xl border text-center ${
+            darkMode
+              ? 'bg-[#173830]/75 border-[#428f76]/60'
+              : 'bg-[#ebe3f6] border-[#a58fd1]'
+          }`}
+        >
+          <span
+            dir="rtl"
+            className={`text-[10px] font-bold block mb-0.5 ${
+              darkMode ? 'text-[#a7f3d0]' : 'text-[#4c2478]'
             }`}
           >
-            <span
-              className={`text-[10px] font-bold block ${
-                darkMode ? 'text-[#a7f3d0]' : 'text-[#4c2478]'
-              }`}
-            >
-              کد تخفیف اختصاصی:
-            </span>
-            <strong
-              className={`text-xs font-mono font-extrabold tracking-wider ${
-                darkMode ? 'text-[#6ee7b7]' : 'text-[#351857]'
-              }`}
-            >
-              {ad.discountCode}
-            </strong>
-          </div>
-        )}
+            ایمیل ارتباطی:
+          </span>
+          <a
+            href={`mailto:${email}`}
+            className={`text-xs font-mono font-extrabold tracking-wide underline underline-offset-2 ${
+              darkMode ? 'text-[#6ee7b7] hover:text-white' : 'text-[#351857] hover:text-[#17382b]'
+            }`}
+          >
+            {email}
+          </a>
+        </div>
 
         <button
+          type="button"
           onClick={handleClickAd}
           className={`w-full mt-2 py-2 px-3 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all ${
             darkMode
@@ -139,8 +147,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({
               : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] hover:from-[#6b3ba1] hover:to-[#2d7d60]'
           }`}
         >
+          <Mail className="w-3.5 h-3.5" />
           <span>{ad.ctaText}</span>
-          <ExternalLink className="w-3.5 h-3.5" />
         </button>
       </aside>
     );
@@ -150,7 +158,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   return (
     <div
       role="region"
-      aria-label="جایگاه تبلیغات حامی کلمباز"
+      aria-label="جایگاه تبلیغات کلمباز"
       className={`w-full max-w-xl mx-auto px-1.5 sm:px-2 shrink-0 ${
         position === 'top' ? 'mb-1' : 'mt-1'
       }`}
@@ -166,27 +174,19 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           <span className="text-base sm:text-lg shrink-0 select-none">
             {ad.icon}
           </span>
-          <span
-            className={`hidden xs:inline-block text-[9px] sm:text-[10px] font-extrabold px-1.5 py-0.5 rounded text-white leading-none shrink-0 ${
-              darkMode
-                ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69]'
-                : 'bg-gradient-to-r from-[#5c328c] to-[#266b52]'
-            }`}
-          >
-            {ad.badgeText || 'حامی'}
-          </span>
-          <div className="min-w-0 flex-1 flex items-center gap-1.5 truncate">
+          <div className="min-w-0 flex-1 flex flex-col sm:flex-row sm:items-center gap-0.5 sm:gap-1.5 truncate">
             <h4 className="text-[11px] sm:text-xs font-extrabold truncate">
               {ad.title}
             </h4>
             <span className="hidden sm:inline opacity-50">·</span>
-            <p
-              className={`hidden sm:inline text-[11px] font-medium truncate ${
-                darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+            <span
+              dir="ltr"
+              className={`text-[10px] sm:text-[11px] font-mono font-bold truncate ${
+                darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
               }`}
             >
-              {ad.tagline}
-            </p>
+              {email}
+            </span>
           </div>
         </div>
 
@@ -200,8 +200,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] hover:from-[#6b3ba1] hover:to-[#2d7d60]'
             }`}
           >
+            <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
             <span>{ad.ctaText}</span>
-            <ExternalLink className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
           </button>
           <button
             type="button"

@@ -45,6 +45,7 @@ import { LoginModal } from './components/Modals/LoginModal';
 import { StatsModal } from './components/Modals/StatsModal';
 import { SettingsModal } from './components/Modals/SettingsModal';
 import { HelpModal } from './components/Modals/HelpModal';
+import { ContactModal } from './components/Modals/ContactModal';
 
 const INITIAL_STATS: PlayerStats = {
   gamesPlayed: 0,
@@ -176,9 +177,13 @@ export default function App() {
     return !currentAccount;
   });
   const [isPreGameAdOpen, setIsPreGameAdOpen] = useState<boolean>(false);
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(() => {
+    if (isAutostart) return false;
+    return Boolean(currentAccount);
+  });
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
+  const [isContactOpen, setIsContactOpen] = useState<boolean>(false);
 
   // Active game state
   const currentGame = gameStates[currentLength] || {
@@ -251,7 +256,7 @@ export default function App() {
     [todayStr, settings.hardMode]
   );
 
-  // On initial load, fetch latest profile from SQLite server if a session token exists
+  // On initial load, fetch latest profile from SQLite/MySQL server if a session token exists
   useEffect(() => {
     let active = true;
     apiFetchCurrentUser()
@@ -259,13 +264,16 @@ export default function App() {
         if (active && serverAccount) {
           applyAccountState(serverAccount);
           setIsLoginOpen(false);
+          if (!isAutostart) {
+            setIsHelpOpen(true);
+          }
         }
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [applyAccountState]);
+  }, [applyAccountState, isAutostart]);
 
   // Sync account updates to SQLite backend and localStorage cache
   const syncAccountData = useCallback(
@@ -302,12 +310,12 @@ export default function App() {
     } catch {}
   }, [currentGame, currentLength, todayStr]);
 
-  // Handle Login / Signup
+  // Handle Login / Signup — pop up the tutorial right after login
   const handleLoginSuccess = (account: UserAccount) => {
     applyAccountState(account);
     showToast(`خوش آمدید، ${account.username}!`);
-    if (settings.showAds && !isAutostart) {
-      setIsPreGameAdOpen(true);
+    if (!isAutostart) {
+      setIsHelpOpen(true);
     }
   };
 
@@ -560,6 +568,7 @@ export default function App() {
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenProfile={() => setIsLoginOpen(true)}
+        onOpenContact={() => setIsContactOpen(true)}
         darkMode={settings.darkMode}
         hardMode={settings.hardMode}
         gameStates={gameStates}
@@ -593,6 +602,7 @@ export default function App() {
                   position="top"
                   darkMode={settings.darkMode}
                   onNotify={showToast}
+                  onOpenContact={() => setIsContactOpen(true)}
                 />
               </div>
             )}
@@ -632,6 +642,7 @@ export default function App() {
             showAds={settings.showAds}
             onOpenHelp={() => setIsHelpOpen(true)}
             onOpenSettings={() => setIsSettingsOpen(true)}
+            onOpenContact={() => setIsContactOpen(true)}
             onNotify={showToast}
           />
         </div>
@@ -681,6 +692,13 @@ export default function App() {
         isOpen={isHelpOpen}
         onClose={() => setIsHelpOpen(false)}
         darkMode={settings.darkMode}
+      />
+
+      <ContactModal
+        isOpen={isContactOpen}
+        onClose={() => setIsContactOpen(false)}
+        darkMode={settings.darkMode}
+        onNotify={showToast}
       />
     </div>
   );

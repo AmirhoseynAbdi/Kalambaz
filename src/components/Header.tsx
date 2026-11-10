@@ -1,11 +1,11 @@
 import React from 'react';
 import {
   HelpCircle,
-  BarChart2,
   Settings,
   Flame,
   User,
   CheckCircle2,
+  Mail,
 } from 'lucide-react';
 import { DailyGameState } from '../types';
 
@@ -18,6 +18,7 @@ interface HeaderProps {
   onOpenStats: () => void;
   onOpenSettings: () => void;
   onOpenProfile: () => void;
+  onOpenContact: () => void;
   darkMode: boolean;
   hardMode: boolean;
   gameStates?: { [len: number]: DailyGameState };
@@ -32,6 +33,7 @@ export const Header: React.FC<HeaderProps> = ({
   onOpenStats,
   onOpenSettings,
   onOpenProfile,
+  onOpenContact,
   darkMode,
   hardMode,
   gameStates,
@@ -52,7 +54,7 @@ export const Header: React.FC<HeaderProps> = ({
             : 'bg-gradient-to-r from-[#e4f2eb]/95 via-[#eef6f1]/95 to-[#ece5f6]/95 border-[#82b59d]/80 text-[#18382b]'
         }`}
       >
-        {/* Right Zone (RTL Start): Brand Identity + Streak on Mobile */}
+        {/* Right Zone (RTL Start): Brand Identity */}
         <div className="flex items-center gap-1.5 sm:gap-2.5 min-w-0 shrink-0">
           <div className="flex items-center gap-1 sm:gap-1.5">
             <span className="text-xl sm:text-2xl drop-shadow-sm select-none">🥬</span>
@@ -134,19 +136,19 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Left Zone (RTL End): Utility Actions & Streak */}
+        {/* Left Zone (RTL End): Streak Viewing Button, Help, Contact Us, Settings, Profile */}
         <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
-          {/* Daily Streak Badge */}
+          {/* Daily Streak Viewing Button (Unified Streak & Stats Button) */}
           <button
             type="button"
             onClick={onOpenStats}
-            aria-label={`استریک پیاپی: ${streak} روز`}
-            className={`h-9 sm:h-10 flex items-center gap-1 px-2 sm:px-2.5 rounded-xl border transition-all text-xs font-extrabold shrink-0 tabular-nums ${
+            aria-label={`مشاهده استریک و آمار: ${streak} روز`}
+            className={`h-9 sm:h-10 flex items-center gap-1 px-2.5 sm:px-3 rounded-xl border transition-all text-xs font-extrabold shrink-0 tabular-nums ${
               darkMode
                 ? 'bg-gradient-to-b from-[#173b31]/90 to-[#271b40]/90 border-[#4da688]/70 text-[#a7f3d0] hover:border-[#6ee7b7]'
                 : 'bg-gradient-to-b from-[#efe7f9] to-[#dfeee6] border-2 border-[#8c70b8] text-[#45216e] hover:from-[#e6daf6] hover:to-[#d3e8dd]'
             }`}
-            title="استریک روزانه کلمباز"
+            title="مشاهده استریک روزانه و آمار"
           >
             <Flame
               className={`w-4 h-4 shrink-0 ${
@@ -158,16 +160,7 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{streak.toLocaleString('fa-IR')}</span>
           </button>
 
-          <button
-            type="button"
-            onClick={onOpenStats}
-            aria-label="آمار و نمودارها"
-            className={iconBtnClass}
-            title="آمار عملکرد"
-          >
-            <BarChart2 className="w-4 h-4 sm:w-5 sm:h-5" />
-          </button>
-
+          {/* Help / Tutorial Button */}
           <button
             type="button"
             onClick={onOpenHelp}
@@ -178,6 +171,23 @@ export const Header: React.FC<HeaderProps> = ({
             <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
           </button>
 
+          {/* Contact Us Button */}
+          <button
+            type="button"
+            onClick={onOpenContact}
+            aria-label="تماس با ما"
+            className={`h-9 sm:h-10 flex items-center justify-center gap-1 px-2 sm:px-2.5 rounded-xl border transition-all active:scale-95 text-xs font-extrabold shrink-0 ${
+              darkMode
+                ? 'bg-gradient-to-b from-[#2f204a]/90 to-[#1c332e]/85 border-[#5a4282]/70 text-[#d8b4fe] hover:from-[#3a285c] hover:to-[#224039] hover:text-white'
+                : 'bg-gradient-to-b from-[#efe9f8] to-[#e1f1e9] border-[#9d84c4]/75 text-[#4c2878] hover:from-[#e6dcf5] hover:to-[#d5ebdf] shadow-2xs'
+            }`}
+            title="تماس با ما و سفارش تبلیغات"
+          >
+            <Mail className="w-4 h-4 shrink-0" />
+            <span className="hidden lg:inline">تماس با ما</span>
+          </button>
+
+          {/* Settings Button */}
           <button
             type="button"
             onClick={onOpenSettings}
