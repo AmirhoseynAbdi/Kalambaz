@@ -40,6 +40,8 @@ function getDefaultStats(): array {
             '5' => 0,
             '6' => 0,
         ],
+        'points' => 50,
+        'starterBonusGranted' => true,
     ];
 }
 
@@ -130,10 +132,27 @@ function getBearerToken(): string {
     return '';
 }
 
-function formatUserAccount(array $row): array {
+function formatUserAccount(array $row, ?PDO $pdo = null): array {
     $defaultStats = getDefaultStats();
     $decodedStats = json_decode($row['stats_json'] ?? '{}', true);
-    $stats = is_array($decodedStats) ? array_replace_recursive($defaultStats, $decodedStats) : $defaultStats;
+    if (is_array($decodedStats)) {
+        $hadStarterBonus = !empty($decodedStats['starterBonusGranted']);
+        $basePoints = max(0, (int)($decodedStats['points'] ?? 0));
+        $stats = array_replace_recursive($defaultStats, $decodedStats);
+        $stats['points'] = $hadStarterBonus ? $basePoints : ($basePoints + 50);
+        $stats['starterBonusGranted'] = true;
+
+        if (!$hadStarterBonus && $pdo !== null && !empty($row['username'])) {
+            $upd = $pdo->prepare('UPDATE users SET stats_json = ?, updated_at = ? WHERE username = ?');
+            $upd->execute([
+                json_encode($stats, JSON_UNESCAPED_UNICODE),
+                gmdate('Y-m-d\TH:i:s\Z'),
+                $row['username'],
+            ]);
+        }
+    } else {
+        $stats = $defaultStats;
+    }
 
     $decodedStates = json_decode($row['game_states_json'] ?? '{}', true);
     $gameStates = is_array($decodedStates) ? $decodedStates : new stdClass();
@@ -206,9 +225,15 @@ if ($route === 'auth/signup' && $method === 'POST') {
     $sessionToken = bin2hex(random_bytes(32));
 
     $defaultStats = getDefaultStats();
-    $initialStats = isset($body['stats']) && is_array($body['stats'])
-        ? array_replace_recursive($defaultStats, $body['stats'])
-        : $defaultStats;
+    if (isset($body['stats']) && is_array($body['stats'])) {
+        $incomingHadBonus = !empty($body['stats']['starterBonusGranted']);
+        $incomingPoints = max(0, (int)($body['stats']['points'] ?? 0));
+        $initialStats = array_replace_recursive($defaultStats, $body['stats']);
+        $initialStats['points'] = $incomingHadBonus ? $incomingPoints : ($incomingPoints + 50);
+        $initialStats['starterBonusGranted'] = true;
+    } else {
+        $initialStats = $defaultStats;
+    }
     $initialGameStates = isset($body['gameStates']) && is_array($body['gameStates'])
         ? $body['gameStates']
         : new stdClass();
@@ -232,7 +257,7 @@ if ($route === 'auth/signup' && $method === 'POST') {
     $createdRow = $fetchStmt->fetch();
 
     sendJson(201, [
-        'account' => formatUserAccount($createdRow),
+        'account' => formatUserAccount($createdRow, $pdo),
         'token' => $sessionToken,
     ]);
 }
@@ -268,7 +293,7 @@ if ($route === 'auth/login' && $method === 'POST') {
     $updStmt->execute([$sessionToken, $now, $username]);
 
     sendJson(200, [
-        'account' => formatUserAccount($userRow),
+        'account' => formatUserAccount($userRow, $pdo),
         'token' => $sessionToken,
     ]);
 }
@@ -289,7 +314,7 @@ if ($route === 'auth/me' && $method === 'GET') {
     }
 
     sendJson(200, [
-        'account' => formatUserAccount($userRow),
+        'account' => formatUserAccount($userRow, $pdo),
     ]);
 }
 
@@ -334,7 +359,7 @@ if ($route === 'user/sync' && ($method === 'PUT' || $method === 'POST')) {
 
     sendJson(200, [
         'ok' => true,
-        'account' => formatUserAccount($freshRow),
+        'account' => formatUserAccount($freshRow, $pdo),
     ]);
 }
 
