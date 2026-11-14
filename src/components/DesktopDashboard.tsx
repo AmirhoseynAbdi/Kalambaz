@@ -6,8 +6,8 @@ import {
   Hourglass,
   Keyboard,
   Sparkles,
-  ShieldCheck,
-  UserCheck,
+  Coins,
+  Lightbulb,
 } from 'lucide-react';
 import { PlayerStats, UserAccount, DailyGameState } from '../types';
 
@@ -19,6 +19,9 @@ interface DesktopDashboardProps {
   gameStates: { [len: number]: DailyGameState };
   hardMode: boolean;
   darkMode: boolean;
+  hintCost: number;
+  canUseHint: boolean;
+  onUseHint: () => void;
   onOpenProfile: () => void;
   onOpenStats: () => void;
 }
@@ -31,6 +34,9 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
   gameStates,
   hardMode,
   darkMode,
+  hintCost,
+  canUseHint,
+  onUseHint,
   onOpenProfile,
   onOpenStats,
 }) => {
@@ -38,6 +44,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
     stats.gamesPlayed > 0
       ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100)
       : 0;
+  const points = Math.max(0, Number(stats.points) || 0);
 
   return (
     <aside
@@ -61,7 +68,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                   : 'bg-gradient-to-br from-[#5c328c] to-[#246b52]'
               }`}
             >
-              {currentAccount ? currentAccount.username.charAt(0).toUpperCase() : '🥬'}
+              {currentAccount ? currentAccount.username.charAt(0).toUpperCase() : '🥦'}
             </div>
             <div>
               <div className="text-xs font-extrabold truncate max-w-[120px]">
@@ -88,13 +95,13 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
           </button>
         </div>
 
-        {/* Quick Stats Grid using alternating green & purple shades */}
+        {/* Quick Stats Grid (Streak, Points, Wins, Win Rate) */}
         <div
-          className={`grid grid-cols-3 gap-1.5 pt-2 border-t text-center ${
+          className={`grid grid-cols-4 gap-1.5 pt-2 border-t text-center ${
             darkMode ? 'border-[#4a356e]/60' : 'border-[#88b8a2]/60'
           }`}
         >
-          {/* Streak: Moss/Jade tint in dark, Lavender tint in light */}
+          {/* Streak */}
           <div
             className={`p-1.5 rounded-xl border ${
               darkMode
@@ -123,7 +130,32 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </span>
           </div>
 
-          {/* Wins: Plum/Amethyst tint in dark, Sage/Celadon tint in light */}
+          {/* Points */}
+          <div
+            className={`p-1.5 rounded-xl border ${
+              darkMode
+                ? 'bg-[#2c1f4a]/85 border-[#7e5cc4]/60'
+                : 'bg-[#fef3c7]/90 border-[#b48a3e]/75'
+            }`}
+          >
+            <div
+              className={`flex items-center justify-center gap-0.5 text-xs font-extrabold ${
+                darkMode ? 'text-[#fde68a]' : 'text-[#92400e]'
+              }`}
+            >
+              <Coins className="w-3.5 h-3.5" />
+              <span>{points.toLocaleString('fa-IR')}</span>
+            </div>
+            <span
+              className={`text-[10px] font-bold block mt-0.5 ${
+                darkMode ? 'text-[#fef3c7]' : 'text-[#78350f]'
+              }`}
+            >
+              امتیاز
+            </span>
+          </div>
+
+          {/* Wins */}
           <div
             className={`p-1.5 rounded-xl border ${
               darkMode
@@ -148,7 +180,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
             </span>
           </div>
 
-          {/* Win rate: Blended Eucalyptus-Violet */}
+          {/* Win rate */}
           <div
             className={`p-1.5 rounded-xl border ${
               darkMode
@@ -168,10 +200,33 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 darkMode ? 'text-[#ddd6fe]' : 'text-[#1c4233]'
               }`}
             >
-              درصد پیروزی
+              برد
             </span>
           </div>
         </div>
+
+        {/* Green-Letter Hint Action Button */}
+        <button
+          type="button"
+          onClick={onUseHint}
+          className={`w-full mt-2.5 py-2 px-3 rounded-xl border text-xs font-extrabold flex items-center justify-between transition-all active:scale-98 ${
+            canUseHint
+              ? darkMode
+                ? 'bg-gradient-to-r from-[#1f6e52] to-[#3b2763] border-[#6ee7b7]/80 text-white hover:from-[#258563] hover:to-[#473078]'
+                : 'bg-gradient-to-r from-[#217a5c] to-[#5c328c] border-[#144d39] text-white hover:opacity-95'
+              : darkMode
+              ? 'bg-[#1c142e]/80 border-[#4a356e]/60 text-[#c4b5fd] hover:text-white'
+              : 'bg-[#ebe3f6]/80 border-[#9d84c4]/70 text-[#4c2478]'
+          }`}
+        >
+          <span className="flex items-center gap-1.5">
+            <Lightbulb className="w-4 h-4 text-[#fde047] fill-[#fde047]" />
+            <span>راهنمای حرف سبز</span>
+          </span>
+          <span className="px-2 py-0.5 rounded-md bg-black/25 text-[11px] font-mono">
+            {hintCost.toLocaleString('fa-IR')} امتیاز
+          </span>
+        </button>
       </div>
 
       {/* Daily Challenge Progress for 4, 5, 6 letter words */}
@@ -199,7 +254,7 @@ export const DesktopDashboard: React.FC<DesktopDashboardProps> = ({
                 : 'text-[#5c328c] hover:text-[#3b1d5e]'
             }`}
           >
-            نمودار کامل
+            کارنامه و استریک
           </button>
         </div>
 

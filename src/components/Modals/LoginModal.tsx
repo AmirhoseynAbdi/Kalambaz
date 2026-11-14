@@ -167,7 +167,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 : 'bg-gradient-to-br from-[#5c328c] to-[#266b52] border-[#482373]'
             }`}
           >
-            🥬
+            🥦
           </div>
           <h2 className="text-xl font-black font-['Lalezar',sans-serif]">
             حساب کاربری کلمباز

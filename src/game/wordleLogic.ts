@@ -140,9 +140,124 @@ export function getTodayDateString(d: Date = new Date()): string {
 }
 
 /**
- * Updates streak based on completed game.
+ * Initial starter points granted once to every user.
+ */
+export const STARTING_POINTS = 50;
+
+/**
+ * Cost in points to reveal one unfound green (correct position) letter hint.
+ */
+export const HINT_COST = 10;
+
+/**
+ * Ensures every user receives the one-time 50-point starter gift
+ * without granting it twice or overwriting spent/earned points.
+ */
+export function ensureStarterBonus(stats: PlayerStats): PlayerStats {
+  const safePoints = Math.max(0, Number(stats.points) || 0);
+  if (stats.starterBonusGranted) {
+    return {
+      ...stats,
+      points: safePoints,
+      starterBonusGranted: true,
+    };
+  }
+
+  return {
+    ...stats,
+    points: safePoints + STARTING_POINTS,
+    starterBonusGranted: true,
+  };
+}
+
+/**
+ * Reward points multiplied per remaining guess (6th try = 2 pts ... 1st try = 12 pts).
+ */
+export const REWARD_POINTS_PER_GUESS = 2;
+
+/**
+ * Calculates points earned for a correct word guess.
+ * Fewer tries earn more points (2 points per remaining guess):
+ * 1 try: 12 pts | 2 tries: 10 pts | 3 tries: 8 pts | 4 tries: 6 pts | 5 tries: 4 pts | 6 tries: 2 pts
+ */
+export function calculateGuessPoints(numGuesses: number, isWin: boolean): number {
+  if (!isWin || numGuesses < 1 || numGuesses > 6) return 0;
+  return (7 - numGuesses) * REWARD_POINTS_PER_GUESS;
+}
+
+/**
+ * Finds the next unfound green letter (a letter position not yet guessed as 'correct'
+ * in any previous attempt and not yet revealed via a hint).
+ */
+export function getAvailableGreenHint(
+  targetWord: string,
+  evaluations: EvaluationResult[][],
+  revealedHints: number[] = []
+): { index: number; letter: string } | null {
+  const normTarget = normalizePersian(targetWord);
+  const targetChars = Array.from(normTarget);
+  if (targetChars.length === 0) return null;
+
+  for (let i = 0; i < targetChars.length; i++) {
+    const alreadyGreen = evaluations.some((row) => row && row[i]?.status === 'correct');
+    const alreadyHinted = revealedHints.includes(i);
+    if (!alreadyGreen && !alreadyHinted) {
+      return { index: i, letter: targetChars[i] };
+    }
+  }
+
+  return null;
+}
+
+/**
+ * Validates and applies a green-letter hint purchase using player points.
+ */
+export function applyGreenHint(
+  currentPoints: number,
+  targetWord: string,
+  evaluations: EvaluationResult[][],
+  revealedHints: number[] = [],
+  cost: number = HINT_COST
+): {
+  ok: boolean;
+  error?: string;
+  hint?: { index: number; letter: string };
+  remainingPoints: number;
+  updatedHints: number[];
+} {
+  const safePoints = Math.max(0, Number(currentPoints) || 0);
+  if (safePoints < cost) {
+    return {
+      ok: false,
+      error: `امتیاز کافی ندارید! برای دریافت راهنمای حرف سبز به ${cost.toLocaleString('fa-IR')} امتیاز نیاز دارید (امتیاز فعلی: ${safePoints.toLocaleString('fa-IR')}).`,
+      remainingPoints: safePoints,
+      updatedHints: [...revealedHints],
+    };
+  }
+
+  const nextHint = getAvailableGreenHint(targetWord, evaluations, revealedHints);
+  if (!nextHint) {
+    return {
+      ok: false,
+      error: 'تمام حروف سبز این کلمه قبلاً پیدا یا آشکار شده‌اند!',
+      remainingPoints: safePoints,
+      updatedHints: [...revealedHints],
+    };
+  }
+
+  return {
+    ok: true,
+    hint: nextHint,
+    remainingPoints: safePoints - cost,
+    updatedHints: [...revealedHints, nextHint.index],
+  };
+}
+
+/**
+ * Updates streak and points based on completed game.
  * Rule: Daily streak increases or is preserved simply by playing for the day,
  * EVEN IN THE CASE OF FAILING TO GUESS THE WORD.
+ * Points are awarded on every winning game inversely proportional to the number of tries.
  */
 export function updateDailyStreak(
   currentStats: PlayerStats,
@@ -152,6 +267,7 @@ export function updateDailyStreak(
 ): PlayerStats {
   const stats: PlayerStats = {
     ...currentStats,
+    points: Math.max(0, Number(currentStats.points) || 0),
     guessDistribution: { ...currentStats.guessDistribution },
   };
 
@@ -159,6 +275,7 @@ export function updateDailyStreak(
   if (isWin) {
     stats.gamesWon += 1;
     stats.guessDistribution[numGuesses] = (stats.guessDistribution[numGuesses] || 0) + 1;
+    stats.points += calculateGuessPoints(numGuesses, true);
   }
 
   // Check streak based on day continuity

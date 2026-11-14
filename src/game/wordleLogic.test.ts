@@ -10,6 +10,12 @@ import {
   getWordPrefix,
   mergeWordLists,
   isWordInVocabulary,
+  calculateGuessPoints,
+  getAvailableGreenHint,
+  applyGreenHint,
+  ensureStarterBonus,
+  HINT_COST,
+  STARTING_POINTS,
 } from './wordleLogic';
 import { PlayerStats, WordEntry } from '../types';
 import { DAILY_WORDS, ELIGIBLE_WORDS } from '../data/wordLists';
@@ -61,7 +67,7 @@ test('validateHardMode enforces green and yellow constraints', () => {
   assert.equal(checkPass.valid, true);
 });
 
-test('updateDailyStreak updates streak even when failing to guess the word', () => {
+test('updateDailyStreak updates streak even when failing to guess the word and awards points on wins', () => {
   const initialStats: PlayerStats = {
     gamesPlayed: 5,
     gamesWon: 4,
@@ -69,6 +75,8 @@ test('updateDailyStreak updates streak even when failing to guess the word', () 
     maxStreak: 3,
     lastPlayedDate: '2026-10-25',
     guessDistribution: { 1: 0, 2: 1, 3: 1, 4: 2, 5: 0, 6: 0 },
+    points: 20,
+    starterBonusGranted: true,
   };
 
   const updatedLost = updateDailyStreak(initialStats, '2026-10-26', false, 6);
@@ -77,12 +85,82 @@ test('updateDailyStreak updates streak even when failing to guess the word', () 
   assert.equal(updatedLost.currentStreak, 4);
   assert.equal(updatedLost.maxStreak, 4);
   assert.equal(updatedLost.lastPlayedDate, '2026-10-26');
+  assert.equal(updatedLost.points, 20);
 
   const sameDay = updateDailyStreak(updatedLost, '2026-10-26', true, 3);
   assert.equal(sameDay.currentStreak, 4);
+  assert.equal(sameDay.points, 28); // 20 + 8 pts for winning in 3 tries
 
   const afterGap = updateDailyStreak(sameDay, '2026-10-30', false, 6);
   assert.equal(afterGap.currentStreak, 1);
+  assert.equal(afterGap.points, 28);
+});
+
+test('calculateGuessPoints awards 2 points per remaining guess (more points for fewer tries, 0 for losses)', () => {
+  assert.equal(calculateGuessPoints(1, true), 12);
+  assert.equal(calculateGuessPoints(2, true), 10);
+  assert.equal(calculateGuessPoints(3, true), 8);
+  assert.equal(calculateGuessPoints(4, true), 6);
+  assert.equal(calculateGuessPoints(5, true), 4);
+  assert.equal(calculateGuessPoints(6, true), 2);
+  assert.equal(calculateGuessPoints(6, false), 0);
+});
+
+test('ensureStarterBonus grants 50 points once to existing users without duplicating', () => {
+  assert.equal(STARTING_POINTS, 50);
+  assert.equal(HINT_COST, 10);
+
+  const legacyStats: PlayerStats = {
+    gamesPlayed: 1,
+    gamesWon: 0,
+    currentStreak: 1,
+    maxStreak: 1,
+    lastPlayedDate: '2026-11-10',
+    guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    points: 0,
+  };
+
+  const migrated = ensureStarterBonus(legacyStats);
+  assert.equal(migrated.points, 50);
+  assert.equal(migrated.starterBonusGranted, true);
+
+  // Calling again does not grant an extra 50 points
+  const secondPass = ensureStarterBonus({ ...migrated, points: 40 });
+  assert.equal(secondPass.points, 40);
+  assert.equal(secondPass.starterBonusGranted, true);
+});
+
+test('getAvailableGreenHint and applyGreenHint reveal unfound green letters and deduct HINT_COST (10 pts)', () => {
+  const evaluations = [
+    [
+      { letter: 'ب', status: 'correct' as const },
+      { letter: 'ر', status: 'absent' as const },
+      { letter: 'ف', status: 'absent' as const },
+      { letter: 'ی', status: 'absent' as const },
+    ],
+  ];
+
+  // Index 0 ('ب') is already green, so next unfound green letter in 'بهار' is index 1 ('ه')
+  const hint1 = getAvailableGreenHint('بهار', evaluations, []);
+  assert.deepEqual(hint1, { index: 1, letter: 'ه' });
+
+  // Not enough points (< HINT_COST = 10)
+  const failRes = applyGreenHint(5, 'بهار', evaluations, []);
+  assert.equal(failRes.ok, false);
+  assert.equal(failRes.remainingPoints, 5);
+
+  // Enough points (>= HINT_COST = 10)
+  const passRes = applyGreenHint(50, 'بهار', evaluations, []);
+  assert.equal(passRes.ok, true);
+  assert.deepEqual(passRes.hint, { index: 1, letter: 'ه' });
+  assert.equal(passRes.remainingPoints, 40);
+  assert.deepEqual(passRes.updatedHints, [1]);
+
+  // Next hint skips index 0 (already green) and index 1 (already hinted) -> reveals index 2 ('ا')
+  const passRes2 = applyGreenHint(passRes.remainingPoints, 'بهار', evaluations, passRes.updatedHints);
+  assert.equal(passRes2.ok, true);
+  assert.deepEqual(passRes2.hint, { index: 2, letter: 'ا' });
+  assert.equal(passRes2.remainingPoints, 30);
 });
 
 test('getDailyWord selects deterministically from DAILY_WORDS only, never from guess-only eligible words', () => {
@@ -151,7 +229,3 @@ test('Orthography check: مسئله, رئیس, پنگوئن are properly spelled
   assert.equal(e5.includes('مسیله'), false);
   assert.equal(e6.includes('پنگوئن'), true);
 });
-
-
-
-

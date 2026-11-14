@@ -77,6 +77,6 @@ export const PRE_GAME_AD: PreGameAdConfig = {
   tagline: 'جهت درج آگهی و اسپانسری در کلمباز با ایمیل justhawkstuff@gmail.com در ارتباط باشید.',
   discountCode: 'justhawkstuff@gmail.com',
   icon: '📣',
-  ctaText: 'شروع بازی کلمباز 🥬',
+  ctaText: 'شروع بازی کلمباز 🥦',
   ctaUrl: 'mailto:justhawkstuff@gmail.com',
 };

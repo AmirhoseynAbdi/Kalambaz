@@ -1,4 +1,5 @@
 import { UserAccount, PlayerStats, DailyGameState } from '../types';
+import { ensureStarterBonus, STARTING_POINTS } from '../game/wordleLogic';
 
 const TOKEN_STORAGE_KEY = 'kalabaz_session_token';
 const ACCOUNTS_STORAGE_KEY = 'kalabaz_accounts';
@@ -11,6 +12,8 @@ function createEmptyStats(): PlayerStats {
     maxStreak: 0,
     lastPlayedDate: '',
     guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    points: STARTING_POINTS,
+    starterBonusGranted: true,
   };
 }
 
@@ -97,7 +100,7 @@ export async function apiSignup(
     username,
     password,
     createdAt: new Date().toISOString(),
-    stats: initialStats || createEmptyStats(),
+    stats: initialStats ? ensureStarterBonus(initialStats) : createEmptyStats(),
     gameStates: initialGameStates || {},
   };
   accounts[username] = newAccount;
@@ -144,9 +147,14 @@ export async function apiLogin(
   if (existing.password && existing.password !== password) {
     throw new Error('رمز عبور وارد شده نادرست است.');
   }
+  const migratedStats = ensureStarterBonus(existing.stats || createEmptyStats());
+  if (!existing.stats?.starterBonusGranted) {
+    accounts[username] = { ...existing, stats: migratedStats };
+    saveLocalAccounts(accounts);
+  }
   const localToken = `local:${username}`;
   setSessionToken(localToken);
-  return { account: existing, token: localToken };
+  return { account: accounts[username], token: localToken };
 }
 
 export async function apiFetchCurrentUser(): Promise<UserAccount | null> {
@@ -156,7 +164,13 @@ export async function apiFetchCurrentUser(): Promise<UserAccount | null> {
   if (token.startsWith('local:')) {
     const username = token.slice('local:'.length);
     const accounts = getLocalAccounts();
-    return accounts[username] || null;
+    const acc = accounts[username];
+    if (!acc) return null;
+    if (!acc.stats?.starterBonusGranted) {
+      accounts[username] = { ...acc, stats: ensureStarterBonus(acc.stats || createEmptyStats()) };
+      saveLocalAccounts(accounts);
+    }
+    return accounts[username];
   }
 
   try {

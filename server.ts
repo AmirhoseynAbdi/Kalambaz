@@ -38,6 +38,8 @@ const DEFAULT_STATS = {
   maxStreak: 0,
   lastPlayedDate: '',
   guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+  points: 50,
+  starterBonusGranted: true,
 };
 
 function hashPassword(password: string): string {
@@ -71,10 +73,25 @@ interface DbUserRow {
 }
 
 function formatUserAccount(row: DbUserRow) {
-  let stats = DEFAULT_STATS;
+  let stats = { ...DEFAULT_STATS };
   let gameStates = {};
   try {
-    stats = { ...DEFAULT_STATS, ...JSON.parse(row.stats_json) };
+    const parsed = JSON.parse(row.stats_json) || {};
+    const hadStarterBonus = Boolean(parsed.starterBonusGranted);
+    const basePoints = Math.max(0, Number(parsed.points) || 0);
+    stats = {
+      ...DEFAULT_STATS,
+      ...parsed,
+      points: hadStarterBonus ? basePoints : basePoints + 50,
+      starterBonusGranted: true,
+    };
+    if (!hadStarterBonus) {
+      db.prepare('UPDATE users SET stats_json = ?, updated_at = ? WHERE username = ?').run(
+        JSON.stringify(stats),
+        new Date().toISOString(),
+        row.username
+      );
+    }
   } catch {}
   try {
     gameStates = JSON.parse(row.game_states_json) || {};
@@ -129,7 +146,18 @@ async function startServer() {
       const now = new Date().toISOString();
       const passwordHash = hashPassword(password);
       const sessionToken = generateSessionToken();
-      const initialStats = req.body?.stats ? { ...DEFAULT_STATS, ...req.body.stats } : DEFAULT_STATS;
+      const incomingStats =
+        req.body?.stats && typeof req.body.stats === 'object' ? req.body.stats : null;
+      const initialStats = incomingStats
+        ? {
+            ...DEFAULT_STATS,
+            ...incomingStats,
+            points: incomingStats.starterBonusGranted
+              ? Math.max(0, Number(incomingStats.points) || 0)
+              : Math.max(0, Number(incomingStats.points) || 0) + 50,
+            starterBonusGranted: true,
+          }
+        : DEFAULT_STATS;
       const initialGameStates = req.body?.gameStates && typeof req.body.gameStates === 'object' ? req.body.gameStates : {};
 
       db.prepare(

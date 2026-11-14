@@ -56,7 +56,7 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
           }`}
         >
           <div className="flex items-center gap-2">
-            <span className="text-xl">🥬</span>
+            <span className="text-xl">🥦</span>
             <span
               className={`text-xs font-extrabold tracking-wide uppercase ${
                 darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
@@ -137,7 +137,7 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
                 : 'bg-[#dfeee6]/85 border-[#82b59d]/65'
             }`}
           >
-            <div className="text-2xl">🥬</div>
+            <div className="text-2xl">🥦</div>
             <div className="text-right flex-1 min-w-0">
               <p
                 className={`text-xs font-semibold ${
@@ -182,7 +182,7 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
             <span>
               {secondsLeft > 0
                 ? `شروع بازی (${secondsLeft})`
-                : PRE_GAME_AD.ctaText || 'شروع بازی کلمباز 🥬'}
+                : PRE_GAME_AD.ctaText || 'شروع بازی کلمباز 🥦'}
             </span>
           </button>
         </div>

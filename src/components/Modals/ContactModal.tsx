@@ -56,7 +56,7 @@ export const ContactModal: React.FC<ContactModalProps> = ({
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🥬</span>
+              <span className="text-2xl">🥦</span>
               <h2 className="text-lg sm:text-xl font-bold font-['Lalezar',sans-serif]">
                 تماس با ما و سفارش تبلیغات
               </h2>

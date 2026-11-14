@@ -21,6 +21,12 @@ import {
   getDailyWord,
   getTodayDateString,
   isWordInVocabulary,
+  HINT_COST,
+  STARTING_POINTS,
+  calculateGuessPoints,
+  getAvailableGreenHint,
+  applyGreenHint,
+  ensureStarterBonus,
 } from './game/wordleLogic';
 import {
   playKeySound,
@@ -52,6 +58,8 @@ const INITIAL_STATS: PlayerStats = {
   gamesWon: 0,
   currentStreak: 0,
   maxStreak: 0,
+  points: STARTING_POINTS,
+  starterBonusGranted: true,
   lastPlayedDate: '',
   guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
 };
@@ -105,11 +113,25 @@ export default function App() {
   // Player Stats (tracked with account if logged in)
   const [stats, setStats] = useState<PlayerStats>(() => {
     if (currentAccount && currentAccount.stats) {
-      return currentAccount.stats;
+      return ensureStarterBonus({
+        ...INITIAL_STATS,
+        ...currentAccount.stats,
+        points: Number(currentAccount.stats.points) || 0,
+        starterBonusGranted: Boolean(currentAccount.stats.starterBonusGranted),
+      });
     }
     try {
       const saved = localStorage.getItem('kalabaz_stats');
-      return saved ? JSON.parse(saved) : INITIAL_STATS;
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        return ensureStarterBonus({
+          ...INITIAL_STATS,
+          ...parsed,
+          points: Number(parsed.points) || 0,
+          starterBonusGranted: Boolean(parsed.starterBonusGranted),
+        });
+      }
+      return INITIAL_STATS;
     } catch {
       return INITIAL_STATS;
     }
@@ -224,7 +246,16 @@ export default function App() {
       } catch {}
 
       if (account.stats) {
-        setStats(account.stats);
+        const normalizedStats = ensureStarterBonus({
+          ...INITIAL_STATS,
+          ...account.stats,
+          points: Number(account.stats.points) || 0,
+          starterBonusGranted: Boolean(account.stats.starterBonusGranted),
+        });
+        setStats(normalizedStats);
+        try {
+          localStorage.setItem('kalabaz_stats', JSON.stringify(normalizedStats));
+        } catch {}
       }
 
       setGameStates((prev) => {
@@ -298,7 +329,7 @@ export default function App() {
     [currentAccount]
   );
 
-  // Save active game state locally
+  // Save active game state and player stats locally
   useEffect(() => {
     try {
       if (currentGame) {
@@ -309,6 +340,85 @@ export default function App() {
       }
     } catch {}
   }, [currentGame, currentLength, todayStr]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem('kalabaz_stats', JSON.stringify(stats));
+    } catch {}
+  }, [stats]);
+
+  // Check whether the user can currently purchase a green-letter hint
+  const canUseHint = useMemo(() => {
+    if (currentGame.status !== 'playing') return false;
+    if ((stats.points || 0) < HINT_COST) return false;
+    const nextHint = getAvailableGreenHint(
+      currentGame.targetWord.word,
+      currentGame.evaluations,
+      currentGame.revealedHints || []
+    );
+    return nextHint !== null;
+  }, [
+    currentGame.status,
+    currentGame.targetWord.word,
+    currentGame.evaluations,
+    currentGame.revealedHints,
+    stats.points,
+  ]);
+
+  // Purchase/activate a green-letter hint
+  const handleUseHint = useCallback(() => {
+    if (currentGame.status !== 'playing') {
+      showToast('این جدول قبلاً به پایان رسیده است!');
+      return;
+    }
+
+    const res = applyGreenHint(
+      stats.points || 0,
+      currentGame.targetWord.word,
+      currentGame.evaluations,
+      currentGame.revealedHints || [],
+      HINT_COST
+    );
+
+    if (!res.ok || !res.hint) {
+      playErrorSound(settings.soundEnabled);
+      showToast(res.error || 'امکان استفاده از راهنما وجود ندارد.');
+      return;
+    }
+
+    playFlipSound(settings.soundEnabled, 0);
+
+    const updatedStats: PlayerStats = {
+      ...stats,
+      points: res.remainingPoints,
+    };
+
+    const updatedGame: DailyGameState = {
+      ...currentGame,
+      revealedHints: res.updatedHints,
+    };
+
+    const newGameStates = {
+      ...gameStates,
+      [currentLength]: updatedGame,
+    };
+
+    setStats(updatedStats);
+    setGameStates(newGameStates);
+    syncAccountData(updatedStats, newGameStates);
+
+    showToast(
+      `💡 راهنما: حرف ${(res.hint.index + 1).toLocaleString('fa-IR')}ام کلمه «${res.hint.letter}» است! (${HINT_COST.toLocaleString('fa-IR')}- امتیاز)`
+    );
+  }, [
+    currentGame,
+    currentLength,
+    gameStates,
+    settings.soundEnabled,
+    showToast,
+    stats,
+    syncAccountData,
+  ]);
 
   // Handle Login / Signup — pop up the tutorial right after login
   const handleLoginSuccess = (account: UserAccount) => {
@@ -411,12 +521,14 @@ export default function App() {
     const newEvaluations = [...currentGame.evaluations, evaluation];
     const isLoss = !isWin && newGuesses.length >= 6;
     const newStatus: GameStatus = isWin ? 'won' : isLoss ? 'lost' : 'playing';
+    const earnedPoints = isWin ? calculateGuessPoints(newGuesses.length, true) : 0;
 
-    const updatedGame = {
+    const updatedGame: DailyGameState = {
       ...currentGame,
       guesses: newGuesses,
       evaluations: newEvaluations,
       status: newStatus,
+      ...(isWin ? { pointsEarned: earnedPoints } : {}),
     };
 
     const newGameStates = {
@@ -449,7 +561,9 @@ export default function App() {
             origin: { y: 0.6 },
             colors: ['#2b8a68', '#6ee7b7', '#7c4dff', '#c4b5fd', '#1f634b', '#5e358c'],
           });
-          showToast('تبریک! کلمه را درست حدس زدید 🥬🎉');
+          showToast(
+            `تبریک! کلمه را درست حدس زدید (+${earnedPoints.toLocaleString('fa-IR')} امتیاز) 🥦🎉`
+          );
           setTimeout(() => setIsStatsOpen(true), 1500);
         }, newGuesses.length * 150);
       } else {
@@ -555,7 +669,7 @@ export default function App() {
         </div>
       )}
 
-      {/* Header with Cabbage logo, tabs, streak, and actions */}
+      {/* Header with Cabbage logo, tabs, streak, points, hint, and actions */}
       <Header
         currentLength={currentLength}
         onSelectLength={(len) => {
@@ -563,6 +677,10 @@ export default function App() {
           setCurrentGuess('');
         }}
         streak={stats.currentStreak}
+        points={stats.points || 0}
+        hintCost={HINT_COST}
+        canUseHint={canUseHint}
+        onUseHint={handleUseHint}
         username={currentAccount?.username}
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
@@ -591,6 +709,9 @@ export default function App() {
             darkMode={settings.darkMode}
             onOpenProfile={() => setIsLoginOpen(true)}
             onOpenStats={() => setIsStatsOpen(true)}
+            hintCost={HINT_COST}
+            canUseHint={canUseHint}
+            onUseHint={handleUseHint}
           />
 
           {/* Center Column: Game Board & Persian Keyboard */}
@@ -618,6 +739,8 @@ export default function App() {
                 gameStatus={currentGame.status}
                 darkMode={settings.darkMode}
                 highContrast={settings.highContrast}
+                targetWord={currentGame.targetWord.word}
+                revealedHints={currentGame.revealedHints || []}
               />
             </div>
 
@@ -628,6 +751,8 @@ export default function App() {
                 onEnter={handleEnter}
                 onDelete={handleDelete}
                 evaluations={currentGame.evaluations}
+                targetWord={currentGame.targetWord.word}
+                revealedHints={currentGame.revealedHints || []}
                 disabled={currentGame.status !== 'playing'}
                 darkMode={settings.darkMode}
                 highContrast={settings.highContrast}

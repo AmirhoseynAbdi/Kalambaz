@@ -41,7 +41,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           }`}
         >
           <h2 className="text-lg font-bold font-['Lalezar',sans-serif]">
-            تنظیمات بازی کلمباز 🥬
+            تنظیمات بازی کلمباز 🥦
           </h2>
           <button
             onClick={onClose}

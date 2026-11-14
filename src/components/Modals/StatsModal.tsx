@@ -2,14 +2,14 @@ import React, { useState, useEffect } from 'react';
 import {
   X,
   Flame,
-  Award,
   Share2,
   Clock,
   Sparkles,
-  CheckCircle,
-  HelpCircle,
+  Coins,
+  Lightbulb,
 } from 'lucide-react';
 import { PlayerStats, WordEntry, EvaluationResult, GameStatus } from '../../types';
+import { calculateGuessPoints, HINT_COST } from '../../game/wordleLogic';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -65,6 +65,9 @@ export const StatsModal: React.FC<StatsModalProps> = ({
     stats.gamesPlayed > 0
       ? Math.round((stats.gamesWon / stats.gamesPlayed) * 100)
       : 0;
+  const totalPoints = Math.max(0, Number(stats.points) || 0);
+  const wonPointsThisGame =
+    gameStatus === 'won' ? calculateGuessPoints(guesses.length, true) : 0;
 
   // Max count for distribution scale
   const maxGuessesCount = Math.max(
@@ -89,8 +92,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({
       )
       .join('\n');
 
-    const streakText = `🔥 استریک پیاپی: ${stats.currentStreak.toLocaleString('fa-IR')} روز`;
-    const shareText = `${title}\n\n${emojiGrid}\n\n${streakText}\nکلمباز: بازی روزانه کلمات کلمی 🥬`;
+    const streakText = `🔥 استریک پیاپی: ${stats.currentStreak.toLocaleString('fa-IR')} روز | 🪙 امتیاز: ${totalPoints.toLocaleString('fa-IR')}`;
+    const shareText = `${title}\n\n${emojiGrid}\n\n${streakText}\nکلمباز: بازی روزانه کلمات کلمی 🥦`;
 
     if (navigator.clipboard) {
       navigator.clipboard.writeText(shareText).then(() => {
@@ -130,7 +133,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
           </button>
 
           {/* Modal Header */}
-          <div className="text-center mb-5">
+          <div className="text-center mb-4">
             <div
               className={`inline-flex items-center justify-center w-12 h-12 rounded-2xl mb-2 border-2 ${
                 darkMode
@@ -141,21 +144,65 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               <Flame className="w-6 h-6 fill-current" />
             </div>
             <h2 className="text-xl font-bold font-['Lalezar',sans-serif]">
-              کارنامه و آمار کلمباز
+              استریک، امتیاز و کارنامه کلمباز
             </h2>
             <p
               className={`text-xs font-semibold mt-0.5 ${
                 darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
               }`}
             >
-              ثبت روند پیشرفت و استریک روزانه
+              ثبت روند پیشرفت، استریک روزانه و امتیاز راهنما
             </p>
+          </div>
+
+          {/* Total Points & Hint Cost Banner */}
+          <div
+            className={`mb-4 p-3 rounded-xl border-2 flex items-center justify-between ${
+              darkMode
+                ? 'bg-gradient-to-r from-[#2c1f4a]/90 to-[#17362e]/90 border-[#7e5cc4]/70 text-[#fef3c7]'
+                : 'bg-gradient-to-r from-[#fef3c7] to-[#e4f2eb] border-[#b48a3e] text-[#5c390e]'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Coins
+                className={`w-5 h-5 shrink-0 ${
+                  darkMode ? 'text-[#fcd34d]' : 'text-[#b45309]'
+                }`}
+              />
+              <div>
+                <div className="text-xs font-extrabold">
+                  موجودی امتیاز شما:{' '}
+                  <span className="text-sm font-black">
+                    {totalPoints.toLocaleString('fa-IR')} امتیاز
+                  </span>
+                </div>
+                <div
+                  className={`text-[10px] font-bold ${
+                    darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                  }`}
+                >
+                  هر راهنمای حرف سبز: {HINT_COST.toLocaleString('fa-IR')} امتیاز
+                </div>
+              </div>
+            </div>
+            <span
+              className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-lg text-[11px] font-extrabold border ${
+                darkMode
+                  ? 'bg-[#173830] border-[#428f76] text-[#86efac]'
+                  : 'bg-[#217a5c] border-[#144d39] text-white'
+              }`}
+            >
+              <Lightbulb className="w-3.5 h-3.5 text-[#fde047] fill-[#fde047]" />
+              <span>
+                {Math.floor(totalPoints / HINT_COST).toLocaleString('fa-IR')} راهنما
+              </span>
+            </span>
           </div>
 
           {/* Word Reveal Card (when game completed) */}
           {gameStatus !== 'playing' && targetWord && (
             <div
-              className={`mb-5 p-4 rounded-xl border-2 text-center ${
+              className={`mb-4 p-4 rounded-xl border-2 text-center ${
                 darkMode
                   ? 'bg-gradient-to-r from-[#281b40]/85 via-[#17362e]/85 to-[#281b40]/85 border-[#529980]/70'
                   : 'bg-gradient-to-r from-[#dfeee6] via-[#f1ebf9] to-[#dfeee6] border-[#8e73ba]'
@@ -171,7 +218,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               <h3 className="text-2xl font-black font-['Lalezar',sans-serif] my-1 tracking-wide">
                 {targetWord.word}
               </h3>
-              <div className="flex items-center justify-center gap-2 mt-1">
+              <div className="flex flex-wrap items-center justify-center gap-2 mt-1">
                 <span
                   className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] border font-extrabold ${
                     darkMode
@@ -181,16 +228,15 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                 >
                   کلمه {wordLength.toLocaleString('fa-IR')} حرفی
                 </span>
-                {targetWord.id && (
+                {wonPointsThisGame > 0 && (
                   <span
-                    dir="ltr"
-                    className={`inline-block px-2 py-0.5 rounded-full text-[10px] font-mono border font-extrabold ${
+                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] border font-extrabold ${
                       darkMode
-                        ? 'bg-[#2e1f47] text-[#e9d5ff] border-[#5e438c]'
-                        : 'bg-[#f4f0fa] text-[#482373] border-[#9b7ec7]'
+                        ? 'bg-[#2c1f4a] text-[#fde68a] border-[#7e5cc4]'
+                        : 'bg-[#fef3c7] text-[#92400e] border-[#b48a3e]'
                     }`}
                   >
-                    #{targetWord.id}
+                    +{wonPointsThisGame.toLocaleString('fa-IR')} امتیاز جایزه!
                   </span>
                 )}
               </div>
@@ -198,7 +244,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
           )}
 
           {/* Stats 4-Grid using alternating shades of green and purple */}
-          <div className="grid grid-cols-4 gap-2 text-center mb-5">
+          <div className="grid grid-cols-4 gap-2 text-center mb-4">
             <div
               className={`p-2.5 rounded-xl border ${
                 darkMode
@@ -294,7 +340,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
 
           {/* Note on Streak preservation */}
           <div
-            className={`flex items-start gap-2 p-2.5 rounded-xl border text-[11px] font-semibold leading-relaxed mb-5 ${
+            className={`flex items-start gap-2 p-2.5 rounded-xl border text-[11px] font-semibold leading-relaxed mb-4 ${
               darkMode
                 ? 'bg-[#17362e]/65 border-[#428f76]/60 text-[#d1fae5]'
                 : 'bg-[#ebe3f6] border-[#9b7ec7] text-[#351857]'
@@ -306,14 +352,14 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               }`}
             />
             <span>
-              <strong>ویژگی کلمباز:</strong> استریک روزانه با صرفاً بازی کردن در هر روز حفظ و زیاد می‌شود، حتی اگر در پیدا کردن کلمه روز موفق نشوید!
+              <strong>جدول امتیازات:</strong> هرچه در حدس‌های کمتری کلمه را پیدا کنید، امتیاز بیشتری می‌گیرید (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} امتیاز تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} امتیاز).
             </span>
           </div>
 
           {/* Guess Distribution Bars using alternating green & purple shades */}
           <div className="mb-5">
             <h4 className="text-xs font-extrabold mb-2.5">
-              توزیع تعداد حدس‌ها:
+              توزیع تعداد حدس‌ها و پاداش هر مرحله:
             </h4>
             <div className="space-y-1.5 text-xs">
               {[1, 2, 3, 4, 5, 6].map((attemptNum) => {
@@ -322,6 +368,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                 const isCurrentAttempt =
                   gameStatus === 'won' && guesses.length === attemptNum;
                 const isEvenBar = attemptNum % 2 === 0;
+                const ptsForAttempt = calculateGuessPoints(attemptNum, true);
 
                 return (
                   <div key={attemptNum} className="flex items-center gap-2">
@@ -360,6 +407,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                         {count.toLocaleString('fa-IR')}
                       </div>
                     </div>
+                    <span
+                      className={`w-[68px] whitespace-nowrap text-left font-mono text-[10px] font-extrabold shrink-0 ${
+                        darkMode ? 'text-[#fde68a]' : 'text-[#92400e]'
+                      }`}
+                    >
+                      +{ptsForAttempt.toLocaleString('fa-IR')} امتیاز
+                    </span>
                   </div>
                 );
               })}

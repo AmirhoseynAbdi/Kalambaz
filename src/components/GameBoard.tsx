@@ -1,5 +1,6 @@
 import React from 'react';
 import { EvaluationResult, GameStatus } from '../types';
+import { normalizePersian } from '../game/wordleLogic';
 
 interface GameBoardProps {
   wordLength: 4 | 5 | 6;
@@ -11,6 +12,8 @@ interface GameBoardProps {
   gameStatus: GameStatus;
   darkMode: boolean;
   highContrast: boolean;
+  targetWord?: string;
+  revealedHints?: number[];
 }
 
 export const GameBoard: React.FC<GameBoardProps> = ({
@@ -23,8 +26,11 @@ export const GameBoard: React.FC<GameBoardProps> = ({
   gameStatus,
   darkMode,
   highContrast,
+  targetWord = '',
+  revealedHints = [],
 }) => {
   const currentGuessChars = Array.from(currentGuess);
+  const targetChars = Array.from(normalizePersian(targetWord));
   const rows = Array.from({ length: maxGuesses });
 
   const maxTilePx = wordLength === 6 ? 54 : wordLength === 5 ? 58 : 62;
@@ -67,6 +73,9 @@ export const GameBoard: React.FC<GameBoardProps> = ({
             {rowLetters.map((letter, colIndex) => {
               const evalResult = rowEvaluation[colIndex];
               const status = evalResult ? evalResult.status : undefined;
+              const isHintedGreen = !isSubmitted && revealedHints.includes(colIndex);
+              const hintedChar = isHintedGreen ? targetChars[colIndex] || '' : '';
+              const displayLetter = letter || (isCurrent && isHintedGreen ? hintedChar : '');
 
               // Compute styling based on tile status using soothing shades of green & purple
               let bgClass = '';
@@ -111,6 +120,17 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                 shadowClass = darkMode
                   ? 'shadow-sm shadow-emerald-500/20'
                   : 'shadow-sm shadow-purple-700/15';
+              } else if (isCurrent && isHintedGreen && hintedChar) {
+                bgClass = darkMode
+                  ? 'bg-gradient-to-br from-[#1b5e46]/70 to-[#144534]/70'
+                  : 'bg-gradient-to-br from-[#d1fae5] to-[#a7f3d0]';
+                borderClass = darkMode
+                  ? 'border-[#6ee7b7] border-dashed'
+                  : 'border-[#1b634a] border-dashed';
+                textClass = darkMode
+                  ? 'text-[#a7f3d0]/90 font-black'
+                  : 'text-[#144d39]/90 font-black';
+                shadowClass = 'shadow-xs shadow-emerald-500/20';
               } else {
                 // Alternating subtle green & purple shades by row/col for a soft, eye-friendly board
                 const isEvenCell = (rowIndex + colIndex) % 2 === 0;
@@ -145,6 +165,8 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                   aria-label={
                     letter
                       ? `حرف ${colIndex + 1}: ${letter}`
+                      : isCurrent && isHintedGreen && hintedChar
+                      ? `راهنمای حرف سبز ${colIndex + 1}: ${hintedChar}`
                       : `خانه خالی ${colIndex + 1}`
                   }
                   style={{
@@ -157,7 +179,15 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     isCurrent && letter ? 'animate-tile-pop' : ''
                   } ${isWinningRow ? 'animate-tile-win' : ''}`}
                 >
-                  <span className="leading-none pt-0.5">{letter}</span>
+                  {isCurrent && isHintedGreen && (
+                    <span
+                      title={`حرف سبز راهنما: ${hintedChar}`}
+                      className="absolute top-0.5 left-1 text-[9px] leading-none select-none pointer-events-none"
+                    >
+                      💡
+                    </span>
+                  )}
+                  <span className="leading-none pt-0.5">{displayLetter}</span>
                 </div>
               );
             })}

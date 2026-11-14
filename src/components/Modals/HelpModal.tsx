@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, HelpCircle, CheckCircle, AlertCircle, Sparkles, Flame } from 'lucide-react';
+import { HINT_COST, STARTING_POINTS, calculateGuessPoints } from '../../game/wordleLogic';
 
 interface HelpModalProps {
   isOpen: boolean;
@@ -37,7 +38,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
             }`}
           >
             <div className="flex items-center gap-2">
-              <span className="text-2xl">🥬</span>
+              <span className="text-2xl">🥦</span>
               <h2 className="text-lg sm:text-xl font-bold font-['Lalezar',sans-serif]">
                 راهنمای بازی کلمباز (Kalabaz)
               </h2>
@@ -212,9 +213,9 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   <strong
                     className={darkMode ? 'text-[#a7f3d0]' : 'text-[#4c2478]'}
                   >
-                    استریک روزانه پیاپی:
+                    امتیازدهی و راهنمای حرف سبز (💡):
                   </strong>{' '}
-                  کلمباز در صورتی که هر روز بازی کنید استریک شما را حتی در صورت نرسیدن به جواب نهایی افزایش می‌دهد!
+                  هر بازیکن در شروع <strong>{STARTING_POINTS.toLocaleString('fa-IR')} امتیاز هدیه</strong> دارد و با هر حدس درست کلمه روز، بین <strong>{calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا {calculateGuessPoints(1, true).toLocaleString('fa-IR')} امتیاز</strong> (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} امتیاز) می‌گیرد. با <strong>{HINT_COST.toLocaleString('fa-IR')} امتیاز</strong> می‌توانید یک حرف سبز کشف‌نشده را آشکار کنید!
                 </p>
               </div>
 
@@ -250,7 +251,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] hover:from-[#6b3ba1] hover:to-[#2d7d60]'
               }`}
             >
-              متوجه شدم، بزن بریم کلم‌بازی! 🥬
+              متوجه شدم، بزن بریم کلم‌بازی! 🥦
             </button>
           </div>
         </div>

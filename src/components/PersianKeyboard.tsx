@@ -1,12 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Delete, CornerDownLeft } from 'lucide-react';
 import { EvaluationResult } from '../types';
+import { normalizePersian } from '../game/wordleLogic';
 
 interface PersianKeyboardProps {
   onChar: (char: string) => void;
   onEnter: () => void;
   onDelete: () => void;
   evaluations: EvaluationResult[][];
+  targetWord?: string;
+  revealedHints?: number[];
   disabled?: boolean;
   darkMode?: boolean;
   highContrast?: boolean;
@@ -27,11 +30,23 @@ const ALTERNATES_MAP: { [char: string]: string[] } = {
   ک: ['ك'],
 };
 
+const ALT_TO_BASE: { [alt: string]: string } = Object.entries(ALTERNATES_MAP).reduce(
+  (acc, [base, alts]) => {
+    alts.forEach((alt) => {
+      acc[alt] = base;
+    });
+    return acc;
+  },
+  {} as { [alt: string]: string }
+);
+
 export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
   onChar,
   onEnter,
   onDelete,
   evaluations,
+  targetWord = '',
+  revealedHints = [],
   disabled = false,
   darkMode = true,
   highContrast = false,
@@ -52,21 +67,33 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
     return () => window.removeEventListener('pointerdown', handleOutsidePointer);
   }, [activePopoverKey]);
 
-  // Compute key letter statuses from all previous guess evaluations
+  // Compute key letter statuses from all previous guess evaluations + revealed green hints
   const letterStatuses: { [letter: string]: 'correct' | 'present' | 'absent' } = {};
 
   evaluations.forEach((row) => {
     row.forEach(({ letter, status }) => {
-      const current = letterStatuses[letter];
+      const targetKey = ALT_TO_BASE[letter] || letter;
+      const current = letterStatuses[targetKey];
       if (status === 'correct') {
-        letterStatuses[letter] = 'correct';
+        letterStatuses[targetKey] = 'correct';
       } else if (status === 'present' && current !== 'correct') {
-        letterStatuses[letter] = 'present';
+        letterStatuses[targetKey] = 'present';
       } else if (status === 'absent' && !current) {
-        letterStatuses[letter] = 'absent';
+        letterStatuses[targetKey] = 'absent';
       }
     });
   });
+
+  if (targetWord && revealedHints.length > 0) {
+    const targetChars = Array.from(normalizePersian(targetWord));
+    revealedHints.forEach((hintIdx) => {
+      const hintChar = targetChars[hintIdx];
+      if (hintChar) {
+        const baseKey = ALT_TO_BASE[hintChar] || hintChar;
+        letterStatuses[baseKey] = 'correct';
+      }
+    });
+  }
 
   const defaultKeyStyle = darkMode
     ? 'bg-gradient-to-b from-[#2e1f47] to-[#231938] text-[#efe9f7] hover:from-[#392759] hover:to-[#2c2047] active:bg-[#46306b] border-[#594085]/75 shadow-xs'

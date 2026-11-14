@@ -21,6 +21,8 @@ export interface DailyGameState {
   hardMode: boolean;
   dateKey: string;
   lastPlayedAt?: number;
+  revealedHints?: number[];
+  pointsEarned?: number;
 }
 
 export interface PlayerStats {
@@ -30,6 +32,8 @@ export interface PlayerStats {
   maxStreak: number;
   lastPlayedDate: string; // YYYY-MM-DD
   guessDistribution: { [guesses: number]: number }; // 1..6 -> count
+  points: number;
+  starterBonusGranted?: boolean;
 }
 
 export interface UserAccount {
