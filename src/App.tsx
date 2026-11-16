@@ -67,18 +67,28 @@ const INITIAL_SETTINGS: AppSettings = {
   darkMode: true,
   hardMode: false,
   soundEnabled: true,
-  highContrast: false,
+  highContrast: true,
   showAds: true,
 };
 
 export default function App() {
   const isAutostart = typeof window !== 'undefined' && window.location.search.includes('autostart=1');
 
-  // App Settings
+  // App Settings (High Contrast enabled by default)
   const [settings, setSettings] = useState<AppSettings>(() => {
     try {
       const saved = localStorage.getItem('kalabaz_settings');
-      return saved ? { ...INITIAL_SETTINGS, ...JSON.parse(saved) } : INITIAL_SETTINGS;
+      const migrated = localStorage.getItem('kalabaz_hc_default_v1');
+      if (saved) {
+        const parsed = JSON.parse(saved);
+        if (!migrated) {
+          localStorage.setItem('kalabaz_hc_default_v1', '1');
+          return { ...INITIAL_SETTINGS, ...parsed, highContrast: true };
+        }
+        return { ...INITIAL_SETTINGS, ...parsed };
+      }
+      localStorage.setItem('kalabaz_hc_default_v1', '1');
+      return INITIAL_SETTINGS;
     } catch {
       return INITIAL_SETTINGS;
     }
