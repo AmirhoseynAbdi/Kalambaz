@@ -15,9 +15,9 @@
 return [
     'DB_HOST' => getenv('DB_HOST') ?: 'localhost',
     'DB_PORT' => getenv('DB_PORT') ?: '3306',
-    'DB_NAME' => getenv('DB_NAME') ?: '', // <-- Paste your cPanel MySQL Database Name here (e.g. 'cpuser_kalambaz')
-    'DB_USER' => getenv('DB_USER') ?: '', // <-- Paste your cPanel MySQL Username here (e.g. 'cpuser_admin')
-    'DB_PASS' => getenv('DB_PASS') ?: '', // <-- Paste your cPanel MySQL Password here
-    'ADMIN_PASSWORD' => getenv('ADMIN_PASSWORD') ?: '', // <-- Optional password for /api/admin.php (uses DB_PASS if left empty)
+    'DB_NAME' => getenv('DB_NAME') ?: 'kalambaz_Users',
+    'DB_USER' => getenv('DB_USER') ?: 'kalambaz_HAWK',
+    'DB_PASS' => getenv('DB_PASS') ?: '8580116101HAwk',
+
 ];
 
