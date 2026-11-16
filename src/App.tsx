@@ -44,7 +44,6 @@ import { Header } from './components/Header';
 import { GameBoard } from './components/GameBoard';
 import { PersianKeyboard } from './components/PersianKeyboard';
 import { AdBanner } from './components/AdBanner';
-import { DesktopDashboard } from './components/DesktopDashboard';
 import { DesktopSponsorPanel } from './components/DesktopSponsorPanel';
 import { PreGameAdModal } from './components/PreGameAdModal';
 import { LoginModal } from './components/Modals/LoginModal';
@@ -199,10 +198,7 @@ export default function App() {
     return !currentAccount;
   });
   const [isPreGameAdOpen, setIsPreGameAdOpen] = useState<boolean>(false);
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(() => {
-    if (isAutostart) return false;
-    return Boolean(currentAccount);
-  });
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isContactOpen, setIsContactOpen] = useState<boolean>(false);
@@ -295,16 +291,13 @@ export default function App() {
         if (active && serverAccount) {
           applyAccountState(serverAccount);
           setIsLoginOpen(false);
-          if (!isAutostart) {
-            setIsHelpOpen(true);
-          }
         }
       })
       .catch(() => {});
     return () => {
       active = false;
     };
-  }, [applyAccountState, isAutostart]);
+  }, [applyAccountState]);
 
   // Sync account updates to SQLite backend and localStorage cache
   const syncAccountData = useCallback(
@@ -692,26 +685,17 @@ export default function App() {
         gameStates={gameStates}
       />
 
-      {/* Main Container: 3 Columns on Desktop, 1 Column on Mobile */}
+      {/* Main Container: Centered Word Panel Flanked by 2 Ad Banners on Each Side on Desktop */}
       <div className="w-full max-w-7xl mx-auto px-1.5 sm:px-4 lg:px-6 flex-1 flex flex-col justify-between min-h-0 overflow-hidden">
-        <div className="flex-1 flex flex-col lg:flex-row items-center lg:items-start justify-between gap-1 sm:gap-3 xl:gap-8 w-full min-h-0 py-0.5 sm:py-1">
-          {/* Desktop Right Sidebar: Daily Player Hub & Status */}
-          <DesktopDashboard
-            stats={stats}
-            currentAccount={currentAccount}
-            currentLength={currentLength}
-            onSelectLength={(len) => {
-              setCurrentLength(len);
-              setCurrentGuess('');
-            }}
-            gameStates={gameStates}
-            hardMode={settings.hardMode}
+        <div className="flex-1 flex flex-col lg:grid lg:grid-cols-[1fr_minmax(0,36rem)_1fr] items-center gap-1 sm:gap-3 xl:gap-6 w-full min-h-0 py-0.5 sm:py-1">
+          {/* Desktop Right Ad Panel (2 stacked banners) */}
+          <DesktopSponsorPanel
+            side="right"
+            adIndices={[0, 1]}
             darkMode={settings.darkMode}
-            onOpenProfile={() => setIsLoginOpen(true)}
-            onOpenStats={() => setIsStatsOpen(true)}
-            hintCost={HINT_COST}
-            canUseHint={canUseHint}
-            onUseHint={handleUseHint}
+            showAds={settings.showAds}
+            onOpenContact={() => setIsContactOpen(true)}
+            onNotify={showToast}
           />
 
           {/* Center Column: Game Board & Persian Keyboard */}
@@ -760,13 +744,12 @@ export default function App() {
             </div>
           </main>
 
-          {/* Desktop Left Sidebar: Modular Advertisement and Quick Tools */}
+          {/* Desktop Left Ad Panel (2 stacked banners) */}
           <DesktopSponsorPanel
+            side="left"
+            adIndices={[2, 3]}
             darkMode={settings.darkMode}
-            hardMode={settings.hardMode}
             showAds={settings.showAds}
-            onOpenHelp={() => setIsHelpOpen(true)}
-            onOpenSettings={() => setIsSettingsOpen(true)}
             onOpenContact={() => setIsContactOpen(true)}
             onNotify={showToast}
           />
