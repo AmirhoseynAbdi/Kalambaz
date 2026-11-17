@@ -6,11 +6,11 @@ import {
   User,
   CheckCircle2,
   Mail,
-  Coins,
   Lightbulb,
 } from 'lucide-react';
 import { DailyGameState } from '../types';
 import { calculateGuessPoints } from '../game/wordleLogic';
+import { GreenSeedIcon } from './GreenSeedIcon';
 
 interface HeaderProps {
   currentLength: 4 | 5 | 6;
@@ -147,7 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Left Zone (RTL End): Streak, Points, Green Hint, Help, Contact Us, Settings, Profile */}
+        {/* Left Zone (RTL End): Streak, Seeds, Green Hint, Help, Contact Us, Settings, Profile */}
         <div className="flex items-center gap-[3px] sm:gap-1.5 shrink-0">
           {/* Daily Streak Viewing Button (Unified Streak & Stats Button) */}
           <button
@@ -171,23 +171,19 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{streak.toLocaleString('fa-IR')}</span>
           </button>
 
-          {/* Player Points Display Badge */}
+          {/* Player Green Seeds Display Badge */}
           <button
             type="button"
             onClick={onOpenStats}
-            aria-label={`امتیاز شما: ${points} امتیاز`}
+            aria-label={`بذرهای شما: ${points} بذر`}
             className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-all text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${
               darkMode
-                ? 'bg-gradient-to-b from-[#2c1f4a]/90 to-[#18352d]/90 border-[#7e5cc4]/70 text-[#fde68a] hover:border-[#fcd34d]'
-                : 'bg-gradient-to-b from-[#fef3c7] to-[#ede5f8] border-2 border-[#b48a3e] text-[#5c390e] hover:from-[#fde68a] hover:to-[#e2d4f4]'
+                ? 'bg-gradient-to-b from-[#134e35]/95 to-[#1a3326]/95 border-[#4ade80]/80 text-[#bef264] shadow-[0_0_10px_rgba(74,222,128,0.2)] hover:border-[#a3e635]'
+                : 'bg-gradient-to-b from-[#dcfce7] to-[#ecfccb] border-2 border-[#16a34a] text-[#14532d] hover:from-[#bbf7d0] hover:to-[#d9f99d]'
             }`}
-            title={`امتیاز شما: ${points.toLocaleString('fa-IR')} (هر برد بر اساس تعداد حدس بین ${calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا ${calculateGuessPoints(1, true).toLocaleString('fa-IR')} امتیاز دارد)`}
+            title={`بذرهای شما: ${points.toLocaleString('fa-IR')} بذر (هر برد بر اساس تعداد حدس بین ${calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا ${calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر جایزه دارد)`}
           >
-            <Coins
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                darkMode ? 'text-[#fcd34d]' : 'text-[#b45309]'
-              }`}
-            />
+            <GreenSeedIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 drop-shadow-xs" />
             <span>{points.toLocaleString('fa-IR')}</span>
           </button>
 
@@ -195,7 +191,7 @@ export const Header: React.FC<HeaderProps> = ({
           <button
             type="button"
             onClick={onUseHint}
-            aria-label={`راهنمای حرف سبز (${hintCost} امتیاز)`}
+            aria-label={`راهنمای حرف سبز (${hintCost} بذر)`}
             className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-all active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 ${
               canUseHint
                 ? darkMode
@@ -205,7 +201,7 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-[#231836]/80 border-[#4c3773]/60 text-[#b5a8c9] hover:text-white'
                 : 'bg-[#e6e0f0]/80 border-[#9d84c4]/60 text-[#4c2878]'
             }`}
-            title={`دریافت راهنمای یک حرف سبز کشف‌نشده (هزینه: ${hintCost.toLocaleString('fa-IR')} امتیاز)`}
+            title={`دریافت راهنمای یک حرف سبز کشف‌نشده (هزینه: ${hintCost.toLocaleString('fa-IR')} بذر)`}
           >
             <Lightbulb
               className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${

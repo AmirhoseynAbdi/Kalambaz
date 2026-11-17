@@ -90,7 +90,7 @@ if ($isAuthed) {
                     gmdate('Y-m-d\TH:i:s\Z'),
                     $targetUser,
                 ]);
-                $flashMessage = "اطلاعات کاربر «{$targetUser}» با موفقیت بروزرسانی شد (امتیاز: {$finalPoints} | استریک: {$newStreak}).";
+                $flashMessage = "اطلاعات کاربر «{$targetUser}» با موفقیت بروزرسانی شد (بذر: {$finalPoints} | استریک: {$newStreak}).";
             } else {
                 $flashError = 'کاربر مورد نظر یافت نشد.';
             }
@@ -187,8 +187,8 @@ if ($isAuthed) {
           <thead>
             <tr>
               <th>نام کاربری</th>
-              <th>امتیاز فعلی (Points)</th>
-              <th>افزودن/کاهش امتیاز (+/-)</th>
+              <th>بذر فعلی (Seeds 🌱)</th>
+              <th>افزودن/کاهش بذر (+/-)</th>
               <th>استریک فعلی (Streak)</th>
               <th>بیشترین استریک (Max)</th>
               <th>برد / بازی</th>

@@ -211,11 +211,11 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 />
                 <p className="text-xs">
                   <strong
-                    className={darkMode ? 'text-[#a7f3d0]' : 'text-[#4c2478]'}
+                    className={darkMode ? 'text-[#bef264]' : 'text-[#15803d]'}
                   >
-                    امتیازدهی و راهنمای حرف سبز (💡):
+                    بذرهای سبز و راهنمای حرف سبز (💡):
                   </strong>{' '}
-                  هر بازیکن در شروع <strong>{STARTING_POINTS.toLocaleString('fa-IR')} امتیاز هدیه</strong> دارد و با هر حدس درست کلمه روز، بین <strong>{calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا {calculateGuessPoints(1, true).toLocaleString('fa-IR')} امتیاز</strong> (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} امتیاز) می‌گیرد. با <strong>{HINT_COST.toLocaleString('fa-IR')} امتیاز</strong> می‌توانید یک حرف سبز کشف‌نشده را آشکار کنید!
+                  هر بازیکن در شروع <strong>{STARTING_POINTS.toLocaleString('fa-IR')} بذر هدیه</strong> دارد و با هر حدس درست کلمه روز، بین <strong>{calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا {calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر</strong> (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} بذر) می‌گیرد. با <strong>{HINT_COST.toLocaleString('fa-IR')} بذر</strong> می‌توانید یک حرف سبز کشف‌نشده را آشکار کنید!
                 </p>
               </div>
 

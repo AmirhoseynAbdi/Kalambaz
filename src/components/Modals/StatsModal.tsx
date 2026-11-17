@@ -5,11 +5,11 @@ import {
   Share2,
   Clock,
   Sparkles,
-  Coins,
   Lightbulb,
 } from 'lucide-react';
 import { PlayerStats, WordEntry, EvaluationResult, GameStatus } from '../../types';
 import { calculateGuessPoints, HINT_COST } from '../../game/wordleLogic';
+import { GreenSeedIcon } from '../GreenSeedIcon';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -92,7 +92,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
       )
       .join('\n');
 
-    const streakText = `🔥 استریک پیاپی: ${stats.currentStreak.toLocaleString('fa-IR')} روز | 🪙 امتیاز: ${totalPoints.toLocaleString('fa-IR')}`;
+    const streakText = `🔥 استریک پیاپی: ${stats.currentStreak.toLocaleString('fa-IR')} روز | 🌱 بذر: ${totalPoints.toLocaleString('fa-IR')}`;
     const shareText = `${title}\n\n${emojiGrid}\n\n${streakText}\nکلمباز: بازی روزانه کلمات کلمی 🥦`;
 
     if (navigator.clipboard) {
@@ -144,44 +144,40 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               <Flame className="w-6 h-6 fill-current" />
             </div>
             <h2 className="text-xl font-bold font-['Lalezar',sans-serif]">
-              استریک، امتیاز و کارنامه کلمباز
+              استریک، بذرها و کارنامه کلمباز
             </h2>
             <p
               className={`text-xs font-semibold mt-0.5 ${
                 darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
               }`}
             >
-              ثبت روند پیشرفت، استریک روزانه و امتیاز راهنما
+              ثبت روند پیشرفت، استریک روزانه و بذرهای راهنما
             </p>
           </div>
 
-          {/* Total Points & Hint Cost Banner */}
+          {/* Total Seeds & Hint Cost Banner */}
           <div
             className={`mb-4 p-3 rounded-xl border-2 flex items-center justify-between ${
               darkMode
-                ? 'bg-gradient-to-r from-[#2c1f4a]/90 to-[#17362e]/90 border-[#7e5cc4]/70 text-[#fef3c7]'
-                : 'bg-gradient-to-r from-[#fef3c7] to-[#e4f2eb] border-[#b48a3e] text-[#5c390e]'
+                ? 'bg-gradient-to-r from-[#113d29]/95 to-[#1b3626]/95 border-[#4ade80]/75 text-[#ecfccb]'
+                : 'bg-gradient-to-r from-[#dcfce7] to-[#ecfccb] border-[#16a34a] text-[#14532d]'
             }`}
           >
             <div className="flex items-center gap-2">
-              <Coins
-                className={`w-5 h-5 shrink-0 ${
-                  darkMode ? 'text-[#fcd34d]' : 'text-[#b45309]'
-                }`}
-              />
+              <GreenSeedIcon className="w-5 h-5 shrink-0 drop-shadow-xs" />
               <div>
                 <div className="text-xs font-extrabold">
-                  موجودی امتیاز شما:{' '}
-                  <span className="text-sm font-black">
-                    {totalPoints.toLocaleString('fa-IR')} امتیاز
+                  موجودی بذر شما:{' '}
+                  <span className="text-sm font-black text-[#a3e635]">
+                    {totalPoints.toLocaleString('fa-IR')} بذر
                   </span>
                 </div>
                 <div
                   className={`text-[10px] font-bold ${
-                    darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+                    darkMode ? 'text-[#bbf7d0]' : 'text-[#166534]'
                   }`}
                 >
-                  هر راهنمای حرف سبز: {HINT_COST.toLocaleString('fa-IR')} امتیاز
+                  هر راهنمای حرف سبز: {HINT_COST.toLocaleString('fa-IR')} بذر
                 </div>
               </div>
             </div>
@@ -230,13 +226,14 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                 </span>
                 {wonPointsThisGame > 0 && (
                   <span
-                    className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] border font-extrabold ${
+                    className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] border font-extrabold ${
                       darkMode
-                        ? 'bg-[#2c1f4a] text-[#fde68a] border-[#7e5cc4]'
-                        : 'bg-[#fef3c7] text-[#92400e] border-[#b48a3e]'
+                        ? 'bg-[#134e35] text-[#bef264] border-[#4ade80]'
+                        : 'bg-[#dcfce7] text-[#14532d] border-[#16a34a]'
                     }`}
                   >
-                    +{wonPointsThisGame.toLocaleString('fa-IR')} امتیاز جایزه!
+                    <GreenSeedIcon className="w-3 h-3" />
+                    <span>+{wonPointsThisGame.toLocaleString('fa-IR')} بذر جایزه!</span>
                   </span>
                 )}
               </div>
@@ -352,7 +349,7 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               }`}
             />
             <span>
-              <strong>جدول امتیازات:</strong> هرچه در حدس‌های کمتری کلمه را پیدا کنید، امتیاز بیشتری می‌گیرید (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} امتیاز تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} امتیاز).
+              <strong>جدول پاداش بذرها:</strong> هرچه در حدس‌های کمتری کلمه را پیدا کنید، بذر بیشتری می‌گیرید (حدس اول: {calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر تا حدس ششم: {calculateGuessPoints(6, true).toLocaleString('fa-IR')} بذر).
             </span>
           </div>
 
@@ -409,10 +406,10 @@ export const StatsModal: React.FC<StatsModalProps> = ({
                     </div>
                     <span
                       className={`w-[68px] whitespace-nowrap text-left font-mono text-[10px] font-extrabold shrink-0 ${
-                        darkMode ? 'text-[#fde68a]' : 'text-[#92400e]'
+                        darkMode ? 'text-[#bef264]' : 'text-[#15803d]'
                       }`}
                     >
-                      +{ptsForAttempt.toLocaleString('fa-IR')} امتیاز
+                      +{ptsForAttempt.toLocaleString('fa-IR')} بذر
                     </span>
                   </div>
                 );

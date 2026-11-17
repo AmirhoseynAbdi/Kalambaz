@@ -411,7 +411,7 @@ export default function App() {
     syncAccountData(updatedStats, newGameStates);
 
     showToast(
-      `💡 راهنما: حرف ${(res.hint.index + 1).toLocaleString('fa-IR')}ام کلمه «${res.hint.letter}» است! (${HINT_COST.toLocaleString('fa-IR')}- امتیاز)`
+      `💡 راهنما: حرف ${(res.hint.index + 1).toLocaleString('fa-IR')}ام کلمه «${res.hint.letter}» است! (${HINT_COST.toLocaleString('fa-IR')}- بذر 🌱)`
     );
   }, [
     currentGame,
@@ -565,7 +565,7 @@ export default function App() {
             colors: ['#2b8a68', '#6ee7b7', '#7c4dff', '#c4b5fd', '#1f634b', '#5e358c'],
           });
           showToast(
-            `تبریک! کلمه را درست حدس زدید (+${earnedPoints.toLocaleString('fa-IR')} امتیاز) 🥦🎉`
+            `تبریک! کلمه را درست حدس زدید (+${earnedPoints.toLocaleString('fa-IR')} بذر 🌱) 🥦🎉`
           );
           setTimeout(() => setIsStatsOpen(true), 1500);
         }, newGuesses.length * 150);

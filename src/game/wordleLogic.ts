@@ -229,7 +229,7 @@ export function applyGreenHint(
   if (safePoints < cost) {
     return {
       ok: false,
-      error: `امتیاز کافی ندارید! برای دریافت راهنمای حرف سبز به ${cost.toLocaleString('fa-IR')} امتیاز نیاز دارید (امتیاز فعلی: ${safePoints.toLocaleString('fa-IR')}).`,
+      error: `بذر کافی ندارید! برای دریافت راهنمای حرف سبز به ${cost.toLocaleString('fa-IR')} بذر نیاز دارید (موجودی فعلی: ${safePoints.toLocaleString('fa-IR')} بذر).`,
       remainingPoints: safePoints,
       updatedHints: [...revealedHints],
     };
