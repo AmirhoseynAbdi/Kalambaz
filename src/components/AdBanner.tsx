@@ -62,20 +62,20 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   };
 
   const bgClasses = darkMode
-    ? `bg-gradient-to-r ${ad.bgGradientDark || 'from-[#24173b]/95 via-[#1d2436]/95 to-[#172e29]/95'} ${ad.borderColor || 'border-[#523b78]/65'} text-[#f2edfa]`
-    : `bg-gradient-to-r ${ad.bgGradientLight || 'from-[#e2f1ea]/95 via-[#edf6f1]/95 to-[#ebe3f6]/95'} ${ad.borderColorLight || 'border-[#82b59d]/75'} text-[#17382b]`;
+    ? `${ad.bgGradientDark || 'bg-[#201733]'} ${ad.borderColor || 'border-[#433266]'} text-[#f5f3ff]`
+    : `${ad.bgGradientLight || 'bg-[#f0eaf8]'} ${ad.borderColorLight || 'border-[#cbbce0]'} text-[#1e1033]`;
 
   const btnClasses = darkMode
-    ? `bg-gradient-to-r ${ad.btnGradientDark || 'from-[#237a5b] to-[#3f2b69]'}`
-    : `bg-gradient-to-r ${ad.btnGradientLight || 'from-[#5c328c] to-[#266b52]'}`;
+    ? `${ad.btnGradientDark || 'bg-[#15803d] hover:bg-[#16a34a]'}`
+    : `${ad.btnGradientLight || 'bg-[#15803d] hover:bg-[#166534]'}`;
 
   const emailClasses = darkMode
-    ? ad.emailTextDark || 'text-[#6ee7b7]'
-    : ad.emailTextLight || 'text-[#5c328c]';
+    ? ad.emailTextDark || 'text-[#86efac]'
+    : ad.emailTextLight || 'text-[#15803d]';
 
   const boxClasses = darkMode
-    ? ad.boxBgDark || 'bg-[#173830]/75 border-[#428f76]/60'
-    : ad.boxBgLight || 'bg-[#ebe3f6] border-[#a58fd1]';
+    ? ad.boxBgDark || 'bg-[#161022] border-[#362854]'
+    : ad.boxBgLight || 'bg-white border-[#cbbce0]';
 
   // Sidebar layout on laptop/desktop
   if (position === 'sidebar') {
@@ -83,7 +83,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
       <div
         role="region"
         aria-label="جایگاه تبلیغات کلمباز"
-        className={`w-full rounded-2xl border-2 p-3 shadow-md transition-all duration-500 relative overflow-hidden backdrop-blur-sm ${bgClasses}`}
+        className={`w-full rounded-2xl border-2 p-3 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
       >
         <button
           onClick={() => setClosed(true)}
@@ -91,7 +91,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           className={`absolute top-2 left-2 p-1 rounded-lg transition-colors ${
             darkMode
               ? 'text-[#c4b5fd] hover:text-white hover:bg-white/10'
-              : 'text-[#215c46] hover:text-[#123628] hover:bg-black/10'
+              : 'text-[#581c87] hover:text-[#1e1033] hover:bg-black/10'
           }`}
         >
           <X className="w-3.5 h-3.5" />
@@ -99,13 +99,11 @@ export const AdBanner: React.FC<AdBannerProps> = ({
 
         <div className="flex items-center gap-1.5 mb-2">
           <span
-            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-full leading-none text-white ${btnClasses}`}
+            className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none text-white ${btnClasses}`}
           >
             {ad.badgeText || 'پذیرش تبلیغات'}
           </span>
-          <span
-            className={`text-[10px] font-bold opacity-85`}
-          >
+          <span className="text-[10px] font-bold opacity-85">
             جایگاه آگهی
           </span>
         </div>

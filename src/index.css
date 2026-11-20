@@ -107,22 +107,23 @@
   transform: rotateX(180deg);
 }
 
-/* Custom scrollbars with soothing purple & green shades */
+/* Custom scrollbars with flat purple & green colors */
 ::-webkit-scrollbar {
   width: 7px;
   height: 7px;
 }
 
 ::-webkit-scrollbar-track {
-  background: rgba(34, 23, 56, 0.14);
+  background: #161022;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: linear-gradient(180deg, #68469c 0%, #2a7a60 100%);
+  background: #6b21a8;
   border-radius: 9999px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: linear-gradient(180deg, #7c56b8 0%, #349475 100%);
+  background: #16a34a;
 }
+
 

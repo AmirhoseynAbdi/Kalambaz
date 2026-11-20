@@ -77,77 +77,38 @@ export const GameBoard: React.FC<GameBoardProps> = ({
               const hintedChar = isHintedGreen ? targetChars[colIndex] || '' : '';
               const displayLetter = letter || (isCurrent && isHintedGreen ? hintedChar : '');
 
-              // Compute styling based on tile status using soothing shades of green & purple
+              // Flat, crisp styling using solid purple & green theme colors
               let bgClass = '';
               let borderClass = '';
               let textClass = '';
-              let shadowClass = '';
 
               if (status === 'correct') {
-                bgClass = highContrast
-                  ? 'bg-emerald-500'
-                  : darkMode
-                  ? 'bg-gradient-to-br from-[#217a5c] to-[#175943]'
-                  : 'bg-gradient-to-br from-[#258060] to-[#1b634a]';
-                borderClass = darkMode ? 'border-[#6ee7b7]/80' : 'border-[#144d39]';
+                bgClass = highContrast ? 'bg-[#16a34a]' : 'bg-[#15803d]';
+                borderClass = highContrast ? 'border-[#22c55e]' : 'border-[#16a34a]';
                 textClass = 'text-white font-black';
-                shadowClass = 'shadow-md shadow-emerald-950/25';
               } else if (status === 'present') {
-                bgClass = highContrast
-                  ? 'bg-orange-500'
-                  : darkMode
-                  ? 'bg-gradient-to-br from-[#c9822b] to-[#a16218]'
-                  : 'bg-gradient-to-br from-[#d4842a] to-[#b36818]';
-                borderClass = darkMode ? 'border-[#fcd34d]/80' : 'border-[#8c4f0e]';
+                bgClass = highContrast ? 'bg-[#f97316]' : 'bg-[#ca8a04]';
+                borderClass = highContrast ? 'border-[#fb923c]' : 'border-[#eab308]';
                 textClass = 'text-white font-black';
-                shadowClass = 'shadow-md shadow-amber-950/25';
               } else if (status === 'absent') {
-                bgClass = darkMode
-                  ? 'bg-gradient-to-br from-[#261d36] to-[#1d2928]'
-                  : 'bg-gradient-to-br from-[#756887] to-[#5e736b]';
-                borderClass = darkMode ? 'border-[#43345c]' : 'border-[#544866]';
-                textClass = darkMode
-                  ? 'text-[#b5a8c9] font-bold'
-                  : 'text-[#f5f2f9] font-bold';
+                bgClass = darkMode ? 'bg-[#1b1429]' : 'bg-[#4b6355]';
+                borderClass = darkMode ? 'border-[#2e2345]' : 'border-[#3a4f43]';
+                textClass = darkMode ? 'text-[#8c7ca8] font-bold' : 'text-white font-bold';
               } else if (letter) {
-                bgClass = darkMode
-                  ? 'bg-gradient-to-br from-[#342252] to-[#1d3d35]'
-                  : 'bg-gradient-to-br from-[#f3ecfa] to-[#e4f5ec]';
-                borderClass = darkMode ? 'border-[#6ee7b7]' : 'border-[#683b9e]';
+                bgClass = darkMode ? 'bg-[#2b1f45]' : 'bg-[#dcfce7]';
+                borderClass = darkMode ? 'border-[#22c55e]' : 'border-[#7e22ce]';
+                textClass = darkMode ? 'text-white font-black' : 'text-[#14532d] font-black';
+              } else if (isCurrent && isHintedGreen && hintedChar) {
+                bgClass = darkMode ? 'bg-[#143d25]' : 'bg-[#bbf7d0]';
+                borderClass = darkMode
+                  ? 'border-[#4ade80] border-dashed'
+                  : 'border-[#16a34a] border-dashed';
                 textClass = darkMode
                   ? 'text-[#bbf7d0] font-black'
-                  : 'text-[#391a5e] font-black';
-                shadowClass = darkMode
-                  ? 'shadow-sm shadow-emerald-500/20'
-                  : 'shadow-sm shadow-purple-700/15';
-              } else if (isCurrent && isHintedGreen && hintedChar) {
-                bgClass = darkMode
-                  ? 'bg-gradient-to-br from-[#1b5e46]/70 to-[#144534]/70'
-                  : 'bg-gradient-to-br from-[#d1fae5] to-[#a7f3d0]';
-                borderClass = darkMode
-                  ? 'border-[#6ee7b7] border-dashed'
-                  : 'border-[#1b634a] border-dashed';
-                textClass = darkMode
-                  ? 'text-[#a7f3d0]/90 font-black'
-                  : 'text-[#144d39]/90 font-black';
-                shadowClass = 'shadow-xs shadow-emerald-500/20';
+                  : 'text-[#14532d] font-black';
               } else {
-                // Alternating subtle green & purple shades by row/col for a soft, eye-friendly board
-                const isEvenCell = (rowIndex + colIndex) % 2 === 0;
-                bgClass = darkMode
-                  ? isEvenCell
-                    ? 'bg-[#241838]/85'
-                    : 'bg-[#192e29]/85'
-                  : isEvenCell
-                  ? 'bg-[#e3f2ea]/90'
-                  : 'bg-[#ebe4f5]/90';
-                borderClass = darkMode
-                  ? isEvenCell
-                    ? 'border-[#523b78]/70'
-                    : 'border-[#2f6b5b]/70'
-                  : isEvenCell
-                  ? 'border-[#82b59d]/75'
-                  : 'border-[#a58fd1]/75';
+                bgClass = darkMode ? 'bg-[#201733]' : 'bg-white';
+                borderClass = darkMode ? 'border-[#3d2e5c]' : 'border-[#86efac]';
                 textClass = 'text-transparent';
               }
 
@@ -175,7 +136,7 @@ export const GameBoard: React.FC<GameBoardProps> = ({
                     animationDelay: isWinningRow ? `${colIndex * 120}ms` : undefined,
                     transitionDelay: isSubmitted ? `${colIndex * 140}ms` : undefined,
                   }}
-                  className={`relative flex items-center justify-center rounded-xl border-2 select-none transition-all duration-300 ${fontSizeClass} ${bgClass} ${borderClass} ${textClass} ${shadowClass} ${
+                  className={`relative flex items-center justify-center rounded-xl border-2 select-none transition-colors duration-200 ${fontSizeClass} ${bgClass} ${borderClass} ${textClass} ${
                     isCurrent && letter ? 'animate-tile-pop' : ''
                   } ${isWinningRow ? 'animate-tile-win' : ''}`}
                 >

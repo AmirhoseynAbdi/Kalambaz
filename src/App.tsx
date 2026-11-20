@@ -623,48 +623,20 @@ export default function App() {
   return (
     <div
       dir="rtl"
-      className={`relative h-[100dvh] min-h-[540px] lg:min-h-screen lg:h-auto overflow-hidden lg:overflow-visible flex flex-col justify-between transition-colors duration-300 ${
+      className={`relative h-[100dvh] min-h-[540px] lg:min-h-screen lg:h-auto overflow-hidden lg:overflow-visible flex flex-col justify-between transition-colors duration-200 ${
         settings.darkMode
-          ? 'bg-gradient-to-br from-[#19112b] via-[#1f1836] to-[#122622] text-[#efe9f7]'
-          : 'bg-gradient-to-br from-[#deefe6] via-[#ebf4ef] to-[#eae3f3] text-[#17362a]'
+          ? 'bg-[#161022] text-[#f5f3ff]'
+          : 'bg-[#f0fdf4] text-[#14532d]'
       }`}
     >
-      {/* Subtle multi-shade green & purple ambient botanical backdrop */}
-      <div
-        aria-hidden="true"
-        className="pointer-events-none fixed inset-0 overflow-hidden z-0"
-      >
-        <div
-          className={`absolute -top-24 -right-24 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
-            settings.darkMode
-              ? 'bg-[#3b215d]/35'
-              : 'bg-[#b5dfca]/55'
-          }`}
-        />
-        <div
-          className={`absolute top-1/3 -left-24 w-80 h-80 rounded-full blur-3xl transition-opacity duration-500 ${
-            settings.darkMode
-              ? 'bg-[#17463a]/35'
-              : 'bg-[#d4c4eb]/50'
-          }`}
-        />
-        <div
-          className={`absolute -bottom-24 right-1/4 w-96 h-96 rounded-full blur-3xl transition-opacity duration-500 ${
-            settings.darkMode
-              ? 'bg-[#2a1c47]/40'
-              : 'bg-[#c5e6d6]/55'
-          }`}
-        />
-      </div>
-
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-bounce w-max max-w-[92vw]">
           <div
-            className={`px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-extrabold shadow-xl backdrop-blur-md text-center ${
+            className={`px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-extrabold shadow-lg text-center ${
               settings.darkMode
-                ? 'bg-gradient-to-r from-[#26183f]/95 via-[#1d2e2b]/95 to-[#26183f]/95 border-[#6ee7b7]/70 text-[#d1fae5]'
-                : 'bg-gradient-to-r from-[#4b2775]/95 via-[#21614b]/95 to-[#4b2775]/95 border-[#d8b4fe] text-[#f5f3ff]'
+                ? 'bg-[#201733] border-[#22c55e] text-[#dcfce7]'
+                : 'bg-[#6b21a8] border-[#581c87] text-white'
             }`}
           >
             {toastMessage}

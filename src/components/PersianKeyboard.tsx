@@ -96,29 +96,25 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
   }
 
   const defaultKeyStyle = darkMode
-    ? 'bg-gradient-to-b from-[#2e1f47] to-[#231938] text-[#efe9f7] hover:from-[#392759] hover:to-[#2c2047] active:bg-[#46306b] border-[#594085]/75 shadow-xs'
-    : 'bg-gradient-to-b from-[#e2f1ea] to-[#d3e8de] text-[#173a2c] hover:from-[#d5eadf] hover:to-[#c4dfd2] active:bg-[#b5d6c6] border-2 border-[#7eb39a]/85 font-extrabold shadow-xs';
+    ? 'bg-[#2a1f42] text-[#f5f3ff] hover:bg-[#362854] active:bg-[#433266] border-[#433266]'
+    : 'bg-[#dcfce7] text-[#14532d] hover:bg-[#bbf7d0] active:bg-[#86efac] border-[#86efac] font-extrabold';
 
   const getKeyColor = (char: string) => {
     const status = letterStatuses[char];
     if (status === 'correct') {
       return highContrast
-        ? 'bg-emerald-500 text-white border-emerald-400 font-extrabold shadow-sm'
-        : darkMode
-        ? 'bg-gradient-to-b from-[#237d5e] to-[#195e46] text-white border-[#6ee7b7]/75 font-extrabold shadow-sm'
-        : 'bg-gradient-to-b from-[#258060] to-[#1b634a] text-white border-[#134d39] font-extrabold shadow-sm';
+        ? 'bg-[#16a34a] text-white border-[#22c55e] font-extrabold'
+        : 'bg-[#15803d] text-white border-[#16a34a] font-extrabold';
     }
     if (status === 'present') {
       return highContrast
-        ? 'bg-orange-500 text-white border-orange-400 font-extrabold shadow-sm'
-        : darkMode
-        ? 'bg-gradient-to-b from-[#c9822b] to-[#a16218] text-white border-[#fcd34d]/75 font-extrabold shadow-sm'
-        : 'bg-gradient-to-b from-[#d4842a] to-[#b36818] text-white border-[#8c4f0e] font-extrabold shadow-sm';
+        ? 'bg-[#f97316] text-white border-[#fb923c] font-extrabold'
+        : 'bg-[#ca8a04] text-white border-[#eab308] font-extrabold';
     }
     if (status === 'absent') {
       return darkMode
-        ? 'bg-[#1c152b]/90 text-[#86769e] border-[#33264a]/80 opacity-70'
-        : 'bg-[#736785]/85 text-[#f3eff8] border-[#5b4f6b] opacity-80';
+        ? 'bg-[#1b1429] text-[#7c6d99] border-[#2e2345]'
+        : 'bg-[#4b6355] text-white border-[#3a4f43]';
     }
     return defaultKeyStyle;
   };
@@ -176,7 +172,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
           }}
           aria-label={hasAlts ? `حرف ${char} (${alts.join('، ')})` : `حرف ${char}`}
           title={hasAlts ? `نگه دارید یا کلیک راست برای: ${alts.join(' ، ')}` : undefined}
-          className={`w-full h-11 sm:h-12 rounded-lg sm:rounded-xl border text-sm sm:text-base font-bold flex flex-col items-center justify-center transition-all active:scale-95 relative touch-manipulation select-none ${getKeyColor(
+          className={`w-full h-11 sm:h-12 rounded-lg sm:rounded-xl border text-sm sm:text-base font-bold flex flex-col items-center justify-center transition-colors active:scale-95 relative touch-manipulation select-none ${getKeyColor(
             char
           )}`}
         >
@@ -187,8 +183,8 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
                 letterStatuses[char]
                   ? 'text-white/90'
                   : darkMode
-                  ? 'text-[#c4b5fd]/80'
-                  : 'text-[#255c46]/80'
+                  ? 'text-[#a78bfa]'
+                  : 'text-[#15803d]'
               }`}
             >
               {alts[0]}
@@ -199,10 +195,10 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
         {/* Long-press / right-click alternates popover */}
         {activePopoverKey === char && hasAlts && (
           <div
-            className={`absolute -top-13 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 rounded-xl border-2 shadow-xl ${
+            className={`absolute -top-13 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 rounded-xl border-2 shadow-lg ${
               darkMode
-                ? 'bg-[#221638] border-[#6ee7b7]'
-                : 'bg-[#f4effa] border-[#653699]'
+                ? 'bg-[#201733] border-[#22c55e]'
+                : 'bg-white border-[#9333ea]'
             }`}
           >
             {alts.map((alt) => (
@@ -213,10 +209,10 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
                   setActivePopoverKey(null);
                   onChar(alt);
                 }}
-                className={`w-9 h-9 rounded-lg font-extrabold text-sm flex items-center justify-center transition-colors ${
+                className={`w-9 h-9 rounded-lg font-extrabold text-sm flex items-center justify-center transition-colors text-white ${
                   darkMode
-                    ? 'bg-gradient-to-b from-[#237a5b] to-[#195c44] hover:from-[#2a8f6b] hover:to-[#1f6e52] text-white'
-                    : 'bg-gradient-to-b from-[#5c328c] to-[#46236e] hover:from-[#6b3ba1] hover:to-[#532a82] text-white'
+                    ? 'bg-[#15803d] hover:bg-[#16a34a]'
+                    : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
                 }`}
               >
                 {alt}
@@ -248,13 +244,17 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
 
       {/* Row 3 with Enter and Backspace */}
       <div className="flex items-center justify-center gap-[3px] sm:gap-1.5">
-        {/* Enter key */}
+        {/* Enter key (Green in Night Mode, Purple in Day Mode) */}
         <button
           type="button"
           disabled={disabled}
           onClick={onEnter}
           aria-label="ثبت حدس کلمه"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation shrink-0 ${defaultKeyStyle}`}
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white ${
+            darkMode
+              ? 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
+              : 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
+          }`}
         >
           <span>ثبت</span>
           <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
@@ -262,13 +262,17 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
 
         {ROW_3.map((char) => renderKey(char, 'max-w-[46px]'))}
 
-        {/* Delete key */}
+        {/* Delete key (Purple in Night Mode, Green in Day Mode) */}
         <button
           type="button"
           disabled={disabled}
           onClick={onDelete}
           aria-label="حذف حرف آخر"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-all active:scale-95 touch-manipulation shrink-0 ${defaultKeyStyle}`}
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white ${
+            darkMode
+              ? 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
+              : 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
+          }`}
         >
           <Delete className="w-4 h-4 shrink-0" />
           <span className="hidden sm:inline">حذف</span>

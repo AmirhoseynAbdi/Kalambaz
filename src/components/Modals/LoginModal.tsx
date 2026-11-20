@@ -134,13 +134,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="ورود و ثبت‌نام حساب کلمباز"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 backdrop-blur-sm animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in"
     >
       <div
         className={`relative w-full max-w-sm rounded-2xl border-2 p-5 sm:p-6 shadow-2xl ${
           darkMode
-            ? 'bg-gradient-to-br from-[#23173b] via-[#1d2236] to-[#152b26] border-[#543c7d]/75 text-[#f2edfa]'
-            : 'bg-gradient-to-br from-[#e6f3ec] via-[#eef6f1] to-[#ece4f6] border-[#82b59d] text-[#17382b]'
+            ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
+            : 'bg-white border-[#86efac] text-[#14532d]'
         }`}
       >
         {/* Close Button if already has account */}
@@ -150,8 +150,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             aria-label="بستن پنجره"
             className={`absolute top-4 left-4 p-1.5 rounded-lg transition-colors ${
               darkMode
-                ? 'text-[#d8b4fe] hover:text-white hover:bg-[#31214f]/60'
-                : 'text-[#215c46] hover:text-[#123628] hover:bg-[#cfe5da]/60'
+                ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
+                : 'text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
             }`}
           >
             <X className="w-5 h-5" />
@@ -161,10 +161,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Header */}
         <div className="text-center mb-5">
           <div
-            className={`w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl shadow-lg border-2 ${
+            className={`w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl border-2 ${
               darkMode
-                ? 'bg-gradient-to-br from-[#237a5b] to-[#3f2b69] border-[#6ee7b7]/70'
-                : 'bg-gradient-to-br from-[#5c328c] to-[#266b52] border-[#482373]'
+                ? 'bg-[#143d25] border-[#22c55e]'
+                : 'bg-[#f3e8ff] border-[#9333ea]'
             }`}
           >
             🥦
@@ -174,7 +174,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </h2>
           <p
             className={`text-xs font-semibold mt-1 ${
-              darkMode ? 'text-[#d8c7f0]' : 'text-[#215c46]'
+              darkMode ? 'text-[#d8c7f0]' : 'text-[#166534]'
             }`}
           >
             ورود با نام و رمز عبور برای ذخیره و پیگیری استریک و پیشرفت
@@ -187,13 +187,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             className={`mb-4 p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
               darkMode
                 ? 'bg-[#26193d]/80 border-[#543c7d] text-[#f2edfa]'
-                : 'bg-[#dfeee6] border-[#82b59d] text-[#17382b]'
+                : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
             }`}
           >
             <span>
               حساب فعال:{' '}
               <strong
-                className={darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'}
+                className={darkMode ? 'text-[#86efac]' : 'text-[#15803d]'}
               >
                 {currentUsername}
               </strong>
@@ -212,10 +212,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Tabs: Login / Sign Up */}
         <div
-          className={`flex rounded-xl p-1 mb-4 border-2 ${
+          className={`flex rounded-xl p-1 mb-4 border ${
             darkMode
-              ? 'bg-[#1a122b]/90 border-[#4b3570]/75'
-              : 'bg-[#d9ece2]/90 border-[#85b8a0]/80'
+              ? 'bg-[#161022] border-[#362854]'
+              : 'bg-[#dcfce7] border-[#86efac]'
           }`}
         >
           <button
@@ -224,14 +224,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setTab('login');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
               tab === 'login'
                 ? darkMode
-                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] text-white shadow-xs'
-                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] text-white shadow-xs'
+                  ? 'bg-[#15803d] text-white'
+                  : 'bg-[#6b21a8] text-white'
                 : darkMode
-                ? 'text-[#d8b4fe] hover:text-white'
-                : 'text-[#1c4233] hover:text-[#122e22]'
+                ? 'text-[#c4b5fd] hover:text-white'
+                : 'text-[#166534] hover:text-[#14532d]'
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -243,14 +243,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setTab('signup');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
               tab === 'signup'
                 ? darkMode
-                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] text-white shadow-xs'
-                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] text-white shadow-xs'
+                  ? 'bg-[#6b21a8] text-white'
+                  : 'bg-[#15803d] text-white'
                 : darkMode
-                ? 'text-[#d8b4fe] hover:text-white'
-                : 'text-[#1c4233] hover:text-[#122e22]'
+                ? 'text-[#c4b5fd] hover:text-white'
+                : 'text-[#166534] hover:text-[#14532d]'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -272,7 +272,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <label
               htmlFor="auth-username"
               className={`block text-xs font-extrabold mb-1 ${
-                darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                darkMode ? 'text-[#86efac]' : 'text-[#15803d]'
               }`}
             >
               نام / نام کاربری:
@@ -289,12 +289,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                   darkMode
                     ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                    : 'bg-[#f6f3fa] border-[#82b59d] text-[#17382b] placeholder-[#527a68] focus:border-[#5c328c]'
+                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
                 }`}
               />
               <User
                 className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
-                  darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                  darkMode ? 'text-[#86efac]' : 'text-[#15803d]'
                 }`}
               />
             </div>
@@ -305,7 +305,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <label
               htmlFor="auth-password"
               className={`block text-xs font-extrabold mb-1 ${
-                darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+                darkMode ? 'text-[#d8b4fe]' : 'text-[#166534]'
               }`}
             >
               رمز عبور:
@@ -321,12 +321,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                   darkMode
                     ? 'bg-[#172e28]/90 border-[#3d8b73]/75 text-white placeholder-[#82b5a5] focus:border-[#d8b4fe]'
-                    : 'bg-[#eef7f2] border-[#9b7ec7] text-[#17382b] placeholder-[#68548c] focus:border-[#21664d]'
+                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
                 }`}
               />
               <Lock
                 className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
-                  darkMode ? 'text-[#d8b4fe]' : 'text-[#21664d]'
+                  darkMode ? 'text-[#d8b4fe]' : 'text-[#166534]'
                 }`}
               />
             </div>
@@ -338,7 +338,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <label
                 htmlFor="auth-confirm-password"
                 className={`block text-xs font-extrabold mb-1 ${
-                  darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                  darkMode ? 'text-[#86efac]' : 'text-[#15803d]'
                 }`}
               >
                 تکرار رمز عبور:
@@ -354,12 +354,12 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                     darkMode
                       ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                      : 'bg-[#f6f3fa] border-[#82b59d] text-[#17382b] placeholder-[#527a68] focus:border-[#5c328c]'
+                      : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
                   }`}
                 />
                 <KeyRound
                   className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
-                    darkMode ? 'text-[#86efac]' : 'text-[#5c328c]'
+                    darkMode ? 'text-[#86efac]' : 'text-[#15803d]'
                   }`}
                 />
               </div>
@@ -371,10 +371,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-white shadow-lg active:scale-98 transition-all flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-60 ${
+              className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-white active:scale-98 transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-60 ${
                 darkMode
-                  ? 'bg-gradient-to-r from-[#237a5b] to-[#3f2b69] hover:from-[#298f6b] hover:to-[#4c357d]'
-                  : 'bg-gradient-to-r from-[#5c328c] to-[#266b52] hover:from-[#6b3ba1] hover:to-[#2d7d60]'
+                  ? 'bg-[#15803d] hover:bg-[#16a34a]'
+                  : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
               }`}
             >
               {isSubmitting ? (
