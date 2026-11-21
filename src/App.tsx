@@ -202,13 +202,18 @@ export default function App() {
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  // Modals state
-  const [isLoginOpen, setIsLoginOpen] = useState<boolean>(() => {
-    if (isAutostart) return false;
-    return !currentAccount;
-  });
+  // Modals state: Login is NOT required to play; new devices only see the tutorial first
+  const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
+  const [loginPromptReason, setLoginPromptReason] = useState<'default' | 'first_win'>('default');
   const [isPreGameAdOpen, setIsPreGameAdOpen] = useState<boolean>(false);
-  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(false);
+  const [isHelpOpen, setIsHelpOpen] = useState<boolean>(() => {
+    if (isAutostart) return false;
+    try {
+      return !localStorage.getItem('kalabaz_tutorial_seen_v1');
+    } catch {
+      return true;
+    }
+  });
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isContactOpen, setIsContactOpen] = useState<boolean>(false);
@@ -423,22 +428,42 @@ export default function App() {
     syncAccountData,
   ]);
 
-  // Handle Login / Signup — pop up the tutorial right after login
+  // Close Help/Tutorial and mark it seen on this device
+  const handleCloseHelp = useCallback(() => {
+    setIsHelpOpen(false);
+    try {
+      localStorage.setItem('kalabaz_tutorial_seen_v1', '1');
+    } catch {}
+  }, []);
+
+  // Handle Login / Signup
   const handleLoginSuccess = (account: UserAccount) => {
+    const wasFirstWinPrompt = loginPromptReason === 'first_win';
     applyAccountState(account);
-    showToast(`خوش آمدید، ${account.username}!`);
-    if (!isAutostart) {
-      setIsHelpOpen(true);
+    setLoginPromptReason('default');
+    showToast(`خوش آمدید، ${account.username}! استریک و امتیاز شما ذخیره شد.`);
+    if (wasFirstWinPrompt) {
+      setIsStatsOpen(true);
     }
   };
 
-  // Handle Logout
+  // Handle Closing LoginModal (if dismissed from first_win prompt, show StatsModal so user still sees results)
+  const handleCloseLogin = () => {
+    const wasFirstWinPrompt = loginPromptReason === 'first_win';
+    setIsLoginOpen(false);
+    setLoginPromptReason('default');
+    if (wasFirstWinPrompt) {
+      setIsStatsOpen(true);
+    }
+  };
+
+  // Handle Logout (stay playable as guest without forcing login)
   const handleLogout = () => {
     localStorage.removeItem('kalabaz_current_user');
     setSessionToken(null);
     setCurrentAccount(null);
+    setIsLoginOpen(false);
     showToast('از حساب کاربری خارج شدید.');
-    setIsLoginOpen(true);
   };
 
   // Keyboard letter input
@@ -556,6 +581,15 @@ export default function App() {
       syncAccountData(updatedStats, newGameStates);
 
       if (isWin) {
+        const shouldPromptGuestAuth = (() => {
+          if (currentAccount) return false;
+          try {
+            return !localStorage.getItem('kalabaz_post_win_auth_prompted');
+          } catch {
+            return true;
+          }
+        })();
+
         setTimeout(() => {
           playWinSound(settings.soundEnabled);
           confetti({
@@ -567,7 +601,17 @@ export default function App() {
           showToast(
             `تبریک! کلمه را درست حدس زدید (+${earnedPoints.toLocaleString('fa-IR')} بذر 🌱) 🥦🎉`
           );
-          setTimeout(() => setIsStatsOpen(true), 1500);
+          setTimeout(() => {
+            if (shouldPromptGuestAuth) {
+              try {
+                localStorage.setItem('kalabaz_post_win_auth_prompted', '1');
+              } catch {}
+              setLoginPromptReason('first_win');
+              setIsLoginOpen(true);
+            } else {
+              setIsStatsOpen(true);
+            }
+          }, 1500);
         }, newGuesses.length * 150);
       } else {
         setTimeout(() => {
@@ -579,6 +623,7 @@ export default function App() {
       syncAccountData(stats, newGameStates);
     }
   }, [
+    currentAccount,
     currentGame,
     currentGuess,
     currentLength,
@@ -660,7 +705,10 @@ export default function App() {
         onOpenHelp={() => setIsHelpOpen(true)}
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
-        onOpenProfile={() => setIsLoginOpen(true)}
+        onOpenProfile={() => {
+          setLoginPromptReason('default');
+          setIsLoginOpen(true);
+        }}
         onOpenContact={() => setIsContactOpen(true)}
         darkMode={settings.darkMode}
         hardMode={settings.hardMode}
@@ -742,10 +790,13 @@ export default function App() {
       <LoginModal
         isOpen={isLoginOpen}
         onLoginSuccess={handleLoginSuccess}
-        onClose={() => setIsLoginOpen(false)}
+        onClose={handleCloseLogin}
         currentUsername={currentAccount?.username}
         onLogout={handleLogout}
         darkMode={settings.darkMode}
+        promptReason={loginPromptReason}
+        guestStats={stats}
+        guestGameStates={gameStates}
       />
 
       <PreGameAdModal
@@ -766,6 +817,11 @@ export default function App() {
         wordLength={currentLength}
         hardMode={settings.hardMode}
         darkMode={settings.darkMode}
+        isLoggedIn={Boolean(currentAccount)}
+        onOpenLogin={() => {
+          setLoginPromptReason('default');
+          setIsLoginOpen(true);
+        }}
       />
 
       <SettingsModal
@@ -780,7 +836,7 @@ export default function App() {
 
       <HelpModal
         isOpen={isHelpOpen}
-        onClose={() => setIsHelpOpen(false)}
+        onClose={handleCloseHelp}
         darkMode={settings.darkMode}
       />
 

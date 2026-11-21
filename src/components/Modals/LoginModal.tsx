@@ -1,6 +1,18 @@
-import React, { useState } from 'react';
-import { User, Lock, KeyRound, UserPlus, LogIn, X, AlertCircle, Loader2 } from 'lucide-react';
-import { UserAccount } from '../../types';
+import React, { useState, useEffect } from 'react';
+import {
+  User,
+  Lock,
+  KeyRound,
+  UserPlus,
+  LogIn,
+  X,
+  AlertCircle,
+  Loader2,
+  Flame,
+  Share2,
+  Sparkles,
+} from 'lucide-react';
+import { UserAccount, PlayerStats, DailyGameState } from '../../types';
 import { apiLogin, apiSignup } from '../../utils/api';
 
 interface LoginModalProps {
@@ -10,6 +22,9 @@ interface LoginModalProps {
   currentUsername?: string;
   onLogout?: () => void;
   darkMode?: boolean;
+  promptReason?: 'default' | 'first_win';
+  guestStats?: PlayerStats;
+  guestGameStates?: { [len: number]: DailyGameState };
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -19,15 +34,30 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   currentUsername,
   onLogout,
   darkMode = true,
+  promptReason = 'default',
+  guestStats,
+  guestGameStates,
 }) => {
-  const [tab, setTab] = useState<'login' | 'signup'>('login');
+  const [tab, setTab] = useState<'login' | 'signup'>(
+    promptReason === 'first_win' ? 'signup' : 'login'
+  );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
+  // Default to Sign Up tab when prompting right after the first solved puzzle
+  useEffect(() => {
+    if (isOpen) {
+      setTab(promptReason === 'first_win' ? 'signup' : 'login');
+      setErrorMessage('');
+    }
+  }, [isOpen, promptReason]);
+
   if (!isOpen) return null;
+
+  const isFirstWinPrompt = promptReason === 'first_win' && !currentUsername;
 
   // Retrieve cached accounts from localStorage for offline fallback / legacy migration
   const getStoredAccounts = (): { [username: string]: UserAccount } => {
@@ -68,7 +98,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       onLoginSuccess(account);
       onClose();
     } catch (err: any) {
-      // Check if user had a legacy localStorage account that needs one-time migration to SQLite
+      // Check if user had a legacy localStorage account that needs one-time migration
       const localAccounts = getStoredAccounts();
       const legacy = localAccounts[cleanUsername];
       if (legacy && legacy.password === password) {
@@ -116,7 +146,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      const { account } = await apiSignup(cleanUsername, password);
+      // Carry over current guest progress (solved puzzle, streak, seeds) into the new account!
+      const { account } = await apiSignup(
+        cleanUsername,
+        password,
+        guestStats,
+        guestGameStates
+      );
       const accounts = getStoredAccounts();
       accounts[account.username] = account;
       saveStoredAccounts(accounts);
@@ -134,52 +170,81 @@ export const LoginModal: React.FC<LoginModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="ورود و ثبت‌نام حساب کلمباز"
+      onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in"
     >
       <div
-        className={`relative w-full max-w-sm rounded-2xl border-2 p-5 sm:p-6 shadow-2xl ${
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-sm rounded-2xl border-2 p-5 sm:p-6 shadow-2xl overflow-y-auto max-h-[92vh] ${
           darkMode
             ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
             : 'bg-white border-[#86efac] text-[#14532d]'
         }`}
       >
-        {/* Close Button if already has account */}
-        {currentUsername && (
-          <button
-            onClick={onClose}
-            aria-label="بستن پنجره"
-            className={`absolute top-4 left-4 p-1.5 rounded-lg transition-colors ${
-              darkMode
-                ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
-                : 'text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
-            }`}
-          >
-            <X className="w-5 h-5" />
-          </button>
-        )}
+        {/* Always-visible Close Button (login is optional) */}
+        <button
+          type="button"
+          onClick={onClose}
+          aria-label="بستن پنجره"
+          className={`absolute top-4 left-4 p-1.5 rounded-lg transition-colors ${
+            darkMode
+              ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
+              : 'text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
+          }`}
+        >
+          <X className="w-5 h-5" />
+        </button>
 
         {/* Header */}
-        <div className="text-center mb-5">
+        <div className="text-center mb-4">
           <div
-            className={`w-14 h-14 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl border-2 ${
+            className={`w-13 h-13 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl border-2 ${
               darkMode
                 ? 'bg-[#143d25] border-[#22c55e]'
                 : 'bg-[#f3e8ff] border-[#9333ea]'
             }`}
           >
-            🥦
+            {isFirstWinPrompt ? '🎉' : '🥦'}
           </div>
           <h2 className="text-xl font-black font-['Lalezar',sans-serif]">
-            حساب کاربری کلمباز
+            {isFirstWinPrompt
+              ? 'آفرین! اولین معما را حل کردید!'
+              : 'حساب کاربری کلمباز'}
           </h2>
           <p
-            className={`text-xs font-semibold mt-1 ${
+            className={`text-xs font-semibold mt-1 leading-relaxed ${
               darkMode ? 'text-[#d8c7f0]' : 'text-[#166534]'
             }`}
           >
-            ورود با نام و رمز عبور برای ذخیره و پیگیری استریک و پیشرفت
+            {isFirstWinPrompt
+              ? 'حساب بسازید یا وارد حساب قبلی شوید تا امتیاز و پیشرفت شما ذخیره بماند:'
+              : 'ورود با نام و رمز عبور برای ذخیره استریک، بذرها و اشتراک‌گذاری نتایج'}
           </p>
         </div>
+
+        {/* Post-first-win benefits list */}
+        {isFirstWinPrompt && (
+          <div
+            className={`mb-4 p-3 rounded-xl border space-y-1.5 text-[11px] font-bold ${
+              darkMode
+                ? 'bg-[#161022] border-[#362854] text-[#e9d5ff]'
+                : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]'
+            }`}
+          >
+            <div className="flex items-center gap-2">
+              <Flame className={`w-3.5 h-3.5 shrink-0 ${darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}`} />
+              <span>حفظ استریک روزانه و آمار بردهای شما</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Share2 className={`w-3.5 h-3.5 shrink-0 ${darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}`} />
+              <span>اشتراک‌گذاری نتیجه با دوستان و مقایسه امتیازها</span>
+            </div>
+            <div className="flex items-center gap-2">
+              <Sparkles className={`w-3.5 h-3.5 shrink-0 ${darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}`} />
+              <span>ذخیره بذرها و ادامه بازی روی هر دستگاه دیگر</span>
+            </div>
+          </div>
+        )}
 
         {/* Currently logged-in indicator */}
         {currentUsername && (
@@ -221,11 +286,11 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           <button
             type="button"
             onClick={() => {
-              setTab('login');
+              setTab('signup');
               setErrorMessage('');
             }}
             className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
-              tab === 'login'
+              tab === 'signup'
                 ? darkMode
                   ? 'bg-[#15803d] text-white'
                   : 'bg-[#6b21a8] text-white'
@@ -234,17 +299,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 : 'text-[#166534] hover:text-[#14532d]'
             }`}
           >
-            <LogIn className="w-3.5 h-3.5" />
-            <span>ورود</span>
+            <UserPlus className="w-3.5 h-3.5" />
+            <span>ساخت حساب جدید</span>
           </button>
           <button
             type="button"
             onClick={() => {
-              setTab('signup');
+              setTab('login');
               setErrorMessage('');
             }}
             className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
-              tab === 'signup'
+              tab === 'login'
                 ? darkMode
                   ? 'bg-[#6b21a8] text-white'
                   : 'bg-[#15803d] text-white'
@@ -253,8 +318,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 : 'text-[#166534] hover:text-[#14532d]'
             }`}
           >
-            <UserPlus className="w-3.5 h-3.5" />
-            <span>ثبت‌نام</span>
+            <LogIn className="w-3.5 h-3.5" />
+            <span>ورود به حساب</span>
           </button>
         </div>
 
@@ -266,7 +331,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
         )}
 
-        <form onSubmit={tab === 'login' ? handleLogin : handleSignup} className="space-y-3.5">
+        <form onSubmit={tab === 'login' ? handleLogin : handleSignup} className="space-y-3">
           {/* Username */}
           <div>
             <label
@@ -289,7 +354,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                   darkMode
                     ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
+                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
                 }`}
               />
               <User
@@ -321,7 +386,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                   darkMode
                     ? 'bg-[#172e28]/90 border-[#3d8b73]/75 text-white placeholder-[#82b5a5] focus:border-[#d8b4fe]'
-                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
+                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
                 }`}
               />
               <Lock
@@ -354,7 +419,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
                     darkMode
                       ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                      : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#15803d]'
+                      : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
                   }`}
                 />
                 <KeyRound
@@ -367,7 +432,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           )}
 
           {/* Submit Button */}
-          <div className="pt-2">
+          <div className="pt-2 space-y-2">
             <button
               type="submit"
               disabled={isSubmitting}
@@ -390,10 +455,28 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               ) : (
                 <>
                   <UserPlus className="w-4 h-4" />
-                  <span>ایجاد حساب جدید</span>
+                  <span>
+                    {isFirstWinPrompt
+                      ? 'ساخت حساب و ذخیره استریک'
+                      : 'ایجاد حساب جدید'}
+                  </span>
                 </>
               )}
             </button>
+
+            {!currentUsername && (
+              <button
+                type="button"
+                onClick={onClose}
+                className={`w-full py-2 px-4 rounded-xl font-bold text-xs transition-colors border ${
+                  darkMode
+                    ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd] hover:text-white hover:bg-[#352752]'
+                    : 'bg-[#dcfce7] border-[#86efac] text-[#166534] hover:bg-[#bbf7d0]'
+                }`}
+              >
+                فعلاً نه، ادامه به عنوان مهمان
+              </button>
+            )}
           </div>
         </form>
       </div>

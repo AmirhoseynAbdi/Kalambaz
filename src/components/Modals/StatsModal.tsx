@@ -22,6 +22,8 @@ interface StatsModalProps {
   wordLength: 4 | 5 | 6;
   hardMode: boolean;
   darkMode?: boolean;
+  isLoggedIn?: boolean;
+  onOpenLogin?: () => void;
 }
 
 export const StatsModal: React.FC<StatsModalProps> = ({
@@ -35,6 +37,8 @@ export const StatsModal: React.FC<StatsModalProps> = ({
   wordLength,
   hardMode,
   darkMode = true,
+  isLoggedIn = false,
+  onOpenLogin,
 }) => {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
@@ -416,6 +420,35 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               })}
             </div>
           </div>
+
+          {/* Guest Account Callout (when not logged in) */}
+          {!isLoggedIn && onOpenLogin && (
+            <div
+              className={`mb-4 p-3 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 ${
+                darkMode
+                  ? 'bg-[#291e40] border-[#433266] text-[#f5f3ff]'
+                  : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]'
+              }`}
+            >
+              <p className="text-[11px] font-bold leading-relaxed text-center sm:text-right">
+                برای حفظ <strong>استریک روزانه</strong>، ذخیره <strong>بذرها</strong> و اشتراک‌گذاری نتایج در دستگاه‌های دیگر، وارد حساب شوید یا ثبت‌نام کنید.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  onClose();
+                  onOpenLogin();
+                }}
+                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-extrabold text-white transition-colors ${
+                  darkMode
+                    ? 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+                    : 'bg-[#15803d] hover:bg-[#16a34a]'
+                }`}
+              >
+                ورود / ساخت حساب
+              </button>
+            </div>
+          )}
 
           {/* Footer: Countdown & Share */}
           <div
