@@ -206,7 +206,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   }`}
                 />
                 <span>
-                  <strong>بذر و راهنما:</strong> با {STARTING_POINTS.toLocaleString('fa-IR')} بذر شروع می‌کنید. با هر برد بذر جایزه می‌گیرید و با {HINT_COST.toLocaleString('fa-IR')} بذر می‌توانید یک حرف سبز را ببینید.
+                  <strong>بذر و راهنما:</strong> با {STARTING_POINTS.toLocaleString('fa-IR')} بذر شروع می‌کنید و با هر برد بذر جایزه می‌گیرید. پس از ورود به حساب کاربری، با {HINT_COST.toLocaleString('fa-IR')} بذر می‌توانید یک حرف سبز را ببینید.
                 </span>
               </div>
 

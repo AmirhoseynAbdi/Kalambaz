@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Mail, X } from 'lucide-react';
+import { Mail } from 'lucide-react';
 import { BANNER_ADS, AdItem } from '../config/advertisements';
 
 interface AdBannerProps {
@@ -17,7 +17,6 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   onNotify,
   onOpenContact,
 }) => {
-  const [closed, setClosed] = useState(false);
   const [activeSlide, setActiveSlide] = useState<number>(() => {
     if (typeof adIndex === 'number' && BANNER_ADS[adIndex]) {
       return adIndex;
@@ -31,14 +30,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
 
   // Auto-advance the small horizontal banner slider every 3.5 seconds
   useEffect(() => {
-    if (!isSlider || closed || isPaused) return;
+    if (!isSlider || isPaused) return;
     const timer = window.setInterval(() => {
       setActiveSlide((prev) => (prev + 1) % BANNER_ADS.length);
     }, 3500);
     return () => window.clearInterval(timer);
-  }, [isSlider, closed, isPaused]);
+  }, [isSlider, isPaused]);
 
-  if (closed || BANNER_ADS.length === 0) return null;
+  if (BANNER_ADS.length === 0) return null;
 
   const currentIndex =
     position === 'sidebar' && typeof adIndex === 'number'
@@ -85,17 +84,6 @@ export const AdBanner: React.FC<AdBannerProps> = ({
         aria-label="جایگاه تبلیغات کلمباز"
         className={`w-full rounded-2xl border-2 p-3 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
       >
-        <button
-          onClick={() => setClosed(true)}
-          aria-label="بستن تبلیغ"
-          className={`absolute top-2 left-2 p-1 rounded-lg transition-colors ${
-            darkMode
-              ? 'text-[#c4b5fd] hover:text-white hover:bg-white/10'
-              : 'text-[#581c87] hover:text-[#1e1033] hover:bg-black/10'
-          }`}
-        >
-          <X className="w-3.5 h-3.5" />
-        </button>
 
         <div className="flex items-center gap-1.5 mb-2">
           <span
@@ -248,14 +236,6 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           >
             <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
             <span>{ad.ctaText}</span>
-          </button>
-          <button
-            type="button"
-            onClick={() => setClosed(true)}
-            aria-label="بستن تبلیغ"
-            className="p-0.5 sm:p-1 rounded-md opacity-75 hover:opacity-100 hover:bg-black/10 transition-colors"
-          >
-            <X className="w-3.5 h-3.5" />
           </button>
         </div>
       </div>

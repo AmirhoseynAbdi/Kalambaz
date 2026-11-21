@@ -1,5 +1,5 @@
 import React from 'react';
-import { X, Moon, Sun, ShieldAlert, Volume2, VolumeX, Eye, Megaphone } from 'lucide-react';
+import { X, Moon, Sun, ShieldAlert, Volume2, VolumeX, Eye } from 'lucide-react';
 import { AppSettings } from '../../types';
 
 interface SettingsModalProps {
@@ -238,50 +238,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <div
                 className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
                   settings.highContrast ? '-translate-x-5' : 'translate-x-0'
-                }`}
-              />
-            </button>
-          </div>
-
-          {/* Show Ads / Sponsors */}
-          <div className="flex items-center justify-between pt-3">
-            <div className="space-y-0.5">
-              <span className="block text-sm font-extrabold flex items-center gap-1.5">
-                <Megaphone
-                  className={`w-4 h-4 ${
-                    darkMode ? 'text-[#d8b4fe]' : 'text-[#15803d]'
-                  }`}
-                />
-                نمایش بنر حامیان مالی
-              </span>
-              <p
-                className={`text-[11px] font-medium ${
-                  darkMode ? 'text-[#d8c7f0]' : 'text-[#166534]'
-                }`}
-              >
-                فضای تبلیغات استاندارد برای پشتیبانی از نگهداری رایگان کلمباز.
-              </p>
-            </div>
-
-            <button
-              role="switch"
-              aria-checked={settings.showAds}
-              onClick={() =>
-                onUpdateSettings({ showAds: !settings.showAds })
-              }
-              className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
-                settings.showAds
-                  ? darkMode
-                    ? 'bg-[#15803d]'
-                    : 'bg-[#6b21a8]'
-                  : darkMode
-                  ? 'bg-[#161022] border border-[#433266]'
-                  : 'bg-[#dcfce7] border border-[#86efac]'
-              }`}
-            >
-              <div
-                className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
-                  settings.showAds ? '-translate-x-5' : 'translate-x-0'
                 }`}
               />
             </button>

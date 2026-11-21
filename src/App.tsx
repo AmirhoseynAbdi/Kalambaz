@@ -83,9 +83,9 @@ export default function App() {
         const parsed = JSON.parse(saved);
         if (!migrated) {
           localStorage.setItem('kalabaz_hc_default_v1', '1');
-          return { ...INITIAL_SETTINGS, ...parsed, highContrast: true };
+          return { ...INITIAL_SETTINGS, ...parsed, highContrast: true, showAds: true };
         }
-        return { ...INITIAL_SETTINGS, ...parsed };
+        return { ...INITIAL_SETTINGS, ...parsed, showAds: true };
       }
       localStorage.setItem('kalabaz_hc_default_v1', '1');
       return INITIAL_SETTINGS;
@@ -204,7 +204,7 @@ export default function App() {
 
   // Modals state: Login is NOT required to play; new devices only see the tutorial first
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
-  const [loginPromptReason, setLoginPromptReason] = useState<'default' | 'first_win'>('default');
+  const [loginPromptReason, setLoginPromptReason] = useState<'default' | 'first_win' | 'hint_required'>('default');
   const [isPreGameAdOpen, setIsPreGameAdOpen] = useState<boolean>(false);
   const [isHelpOpen, setIsHelpOpen] = useState<boolean>(() => {
     if (isAutostart) return false;
@@ -355,8 +355,9 @@ export default function App() {
     } catch {}
   }, [stats]);
 
-  // Check whether the user can currently purchase a green-letter hint
+  // Check whether the user can currently purchase a green-letter hint (login required)
   const canUseHint = useMemo(() => {
+    if (!currentAccount) return false;
     if (currentGame.status !== 'playing') return false;
     if ((stats.points || 0) < HINT_COST) return false;
     const nextHint = getAvailableGreenHint(
@@ -366,6 +367,7 @@ export default function App() {
     );
     return nextHint !== null;
   }, [
+    currentAccount,
     currentGame.status,
     currentGame.targetWord.word,
     currentGame.evaluations,
@@ -373,8 +375,16 @@ export default function App() {
     stats.points,
   ]);
 
-  // Purchase/activate a green-letter hint
+  // Purchase/activate a green-letter hint (only available after login)
   const handleUseHint = useCallback(() => {
+    if (!currentAccount) {
+      playErrorSound(settings.soundEnabled);
+      showToast('برای استفاده از راهنمای حرف سبز، ابتدا وارد حساب کاربری شوید.');
+      setLoginPromptReason('hint_required');
+      setIsLoginOpen(true);
+      return;
+    }
+
     if (currentGame.status !== 'playing') {
       showToast('این جدول قبلاً به پایان رسیده است!');
       return;
@@ -419,6 +429,7 @@ export default function App() {
       `💡 راهنما: حرف ${(res.hint.index + 1).toLocaleString('fa-IR')}ام کلمه «${res.hint.letter}» است! (${HINT_COST.toLocaleString('fa-IR')}- بذر 🌱)`
     );
   }, [
+    currentAccount,
     currentGame,
     currentLength,
     gameStates,
@@ -723,7 +734,7 @@ export default function App() {
             side="right"
             adIndices={[0, 1]}
             darkMode={settings.darkMode}
-            showAds={settings.showAds}
+            showAds={true}
             onOpenContact={() => setIsContactOpen(true)}
             onNotify={showToast}
           />
@@ -731,16 +742,14 @@ export default function App() {
           {/* Center Column: Game Board & Persian Keyboard */}
           <main className="flex-1 flex flex-col items-center justify-between w-full max-w-xl mx-auto h-full min-h-0">
             {/* Mobile Compact Top Ad Strip (only on < lg) */}
-            {settings.showAds && (
-              <div className="lg:hidden w-full shrink-0">
-                <AdBanner
-                  position="top"
-                  darkMode={settings.darkMode}
-                  onNotify={showToast}
-                  onOpenContact={() => setIsContactOpen(true)}
-                />
-              </div>
-            )}
+            <div className="lg:hidden w-full shrink-0">
+              <AdBanner
+                position="top"
+                darkMode={settings.darkMode}
+                onNotify={showToast}
+                onOpenContact={() => setIsContactOpen(true)}
+              />
+            </div>
 
             {/* Game Board */}
             <div className="flex-1 flex items-center justify-center py-0.5 sm:py-1.5 min-h-0 w-full">
@@ -779,7 +788,7 @@ export default function App() {
             side="left"
             adIndices={[2, 3]}
             darkMode={settings.darkMode}
-            showAds={settings.showAds}
+            showAds={true}
             onOpenContact={() => setIsContactOpen(true)}
             onNotify={showToast}
           />

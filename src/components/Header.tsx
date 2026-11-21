@@ -7,6 +7,7 @@ import {
   CheckCircle2,
   Mail,
   Lightbulb,
+  Lock,
 } from 'lucide-react';
 import { DailyGameState } from '../types';
 import { calculateGuessPoints } from '../game/wordleLogic';
@@ -183,11 +184,15 @@ export const Header: React.FC<HeaderProps> = ({
             <span>{points.toLocaleString('fa-IR')}</span>
           </button>
 
-          {/* Green-Letter Hint Button */}
+          {/* Green-Letter Hint Button (locked until login) */}
           <button
             type="button"
             onClick={onUseHint}
-            aria-label={`راهنمای حرف سبز (${hintCost} بذر)`}
+            aria-label={
+              username
+                ? `راهنمای حرف سبز (${hintCost} بذر)`
+                : 'راهنمای حرف سبز (نیاز به ورود به حساب کاربری)'
+            }
             className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 ${
               canUseHint
                 ? darkMode
@@ -197,17 +202,29 @@ export const Header: React.FC<HeaderProps> = ({
                 ? 'bg-[#291e40] border-[#433266] text-[#9b8bb8] hover:text-white'
                 : 'bg-[#dcfce7] border-[#86efac] text-[#166534]'
             }`}
-            title={`دریافت راهنمای یک حرف سبز کشف‌نشده (هزینه: ${hintCost.toLocaleString('fa-IR')} بذر)`}
+            title={
+              username
+                ? `دریافت راهنمای یک حرف سبز کشف‌نشده (هزینه: ${hintCost.toLocaleString('fa-IR')} بذر)`
+                : 'برای استفاده از راهنمای حرف سبز ابتدا وارد حساب کاربری شوید'
+            }
           >
-            <Lightbulb
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                canUseHint
-                  ? 'text-[#fde047] fill-[#fde047]'
-                  : darkMode
-                  ? 'text-[#a78bfa]'
-                  : 'text-[#15803d]'
-              }`}
-            />
+            {username ? (
+              <Lightbulb
+                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
+                  canUseHint
+                    ? 'text-[#fde047] fill-[#fde047]'
+                    : darkMode
+                    ? 'text-[#a78bfa]'
+                    : 'text-[#15803d]'
+                }`}
+              />
+            ) : (
+              <Lock
+                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
+                  darkMode ? 'text-[#a78bfa]' : 'text-[#15803d]'
+                }`}
+              />
+            )}
             <span className="hidden sm:inline">راهنما</span>
             <span className="text-[10px] opacity-90 font-mono">
               ({hintCost.toLocaleString('fa-IR')})

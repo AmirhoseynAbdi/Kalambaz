@@ -22,7 +22,7 @@ interface LoginModalProps {
   currentUsername?: string;
   onLogout?: () => void;
   darkMode?: boolean;
-  promptReason?: 'default' | 'first_win';
+  promptReason?: 'default' | 'first_win' | 'hint_required';
   guestStats?: PlayerStats;
   guestGameStates?: { [len: number]: DailyGameState };
 }
@@ -58,6 +58,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   if (!isOpen) return null;
 
   const isFirstWinPrompt = promptReason === 'first_win' && !currentUsername;
+  const isHintPrompt = promptReason === 'hint_required' && !currentUsername;
 
   // Retrieve cached accounts from localStorage for offline fallback / legacy migration
   const getStoredAccounts = (): { [username: string]: UserAccount } => {
@@ -204,11 +205,13 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 : 'bg-[#f3e8ff] border-[#9333ea]'
             }`}
           >
-            {isFirstWinPrompt ? '🎉' : '🥦'}
+            {isFirstWinPrompt ? '🎉' : isHintPrompt ? '💡' : '🥦'}
           </div>
           <h2 className="text-xl font-black font-['Lalezar',sans-serif]">
             {isFirstWinPrompt
               ? 'آفرین! اولین معما را حل کردید!'
+              : isHintPrompt
+              ? 'راهنما ویژه کاربران عضو است'
               : 'حساب کاربری کلمباز'}
           </h2>
           <p
@@ -218,7 +221,9 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           >
             {isFirstWinPrompt
               ? 'حساب بسازید یا وارد حساب قبلی شوید تا امتیاز و پیشرفت شما ذخیره بماند:'
-              : 'ورود با نام و رمز عبور برای ذخیره استریک، بذرها و اشتراک‌گذاری نتایج'}
+              : isHintPrompt
+              ? 'برای استفاده از راهنمای حرف سبز با بذرهایتان، وارد حساب کاربری شوید یا یک حساب رایگان بسازید.'
+              : 'ورود با نام و رمز عبور برای ذخیره استریک، بذرها و استفاده از راهنما'}
           </p>
         </div>
 
@@ -241,7 +246,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             </div>
             <div className="flex items-center gap-2">
               <Sparkles className={`w-3.5 h-3.5 shrink-0 ${darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}`} />
-              <span>ذخیره بذرها و ادامه بازی روی هر دستگاه دیگر</span>
+              <span>استفاده از بذرها برای راهنمای حرف سبز و ذخیره پیشرفت</span>
             </div>
           </div>
         )}
