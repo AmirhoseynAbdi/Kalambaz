@@ -39,6 +39,18 @@ import {
   apiSyncUserData,
   setSessionToken,
 } from './utils/api';
+import { usePWAInstall } from './hooks/usePWAInstall';
+import {
+  NotificationPermissionState,
+  getBrowserNotificationPermission,
+  isDailyNotificationEnabled,
+  setDailyNotificationEnabled,
+  getLastNotifiedDate,
+  markDateNotified,
+  shouldTriggerDailyNotification,
+  requestAndEnableNotifications,
+  showKalabazNotification,
+} from './utils/notifications';
 
 import { Header } from './components/Header';
 import { GameBoard } from './components/GameBoard';
@@ -214,9 +226,18 @@ export default function App() {
       return true;
     }
   });
+  const [helpInitialSlide, setHelpInitialSlide] = useState<0 | 1 | 2>(0);
   const [isStatsOpen, setIsStatsOpen] = useState<boolean>(false);
   const [isSettingsOpen, setIsSettingsOpen] = useState<boolean>(false);
   const [isContactOpen, setIsContactOpen] = useState<boolean>(false);
+
+  // PWA install prompt & daily notifications state
+  const { isInstallable, isInstalled, isIOS, install: triggerPWAInstall } = usePWAInstall();
+  const [notificationPermission, setNotificationPermission] =
+    useState<NotificationPermissionState>(() => getBrowserNotificationPermission());
+  const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() =>
+    isDailyNotificationEnabled()
+  );
 
   // Active game state
   const currentGame = gameStates[currentLength] || {
@@ -243,6 +264,37 @@ export default function App() {
       localStorage.setItem('kalabaz_settings', JSON.stringify(settings));
     } catch {}
   }, [settings]);
+
+  // Trigger a daily browser/PWA reminder notification when enabled and a new day's puzzle is unsolved
+  useEffect(() => {
+    const checkAndNotify = () => {
+      const currentPerm = getBrowserNotificationPermission();
+      setNotificationPermission(currentPerm);
+      const latestDateKey = getTodayDateString();
+      const hasUnsolved = ([4, 5, 6] as const).some(
+        (len) => gameStates[len]?.status !== 'won'
+      );
+      if (
+        shouldTriggerDailyNotification({
+          enabled: notificationsEnabled,
+          permission: currentPerm,
+          todayDateKey: latestDateKey,
+          lastNotifiedDateKey: getLastNotifiedDate(),
+          hasUnsolvedPuzzleToday: hasUnsolved,
+        })
+      ) {
+        markDateNotified(latestDateKey);
+        showKalabazNotification(
+          '🥦 کلمه جدید امروز کلمباز آماده است!',
+          'معماهای ۴، ۵ و ۶ حرفی امروز منتشر شدند — وارد شوید و استریک خود را حفظ کنید!'
+        ).catch(() => {});
+      }
+    };
+
+    checkAndNotify();
+    const timer = window.setInterval(checkAndNotify, 60_000);
+    return () => window.clearInterval(timer);
+  }, [notificationsEnabled, gameStates]);
 
   // Apply account data to local states
   const applyAccountState = useCallback(
@@ -446,6 +498,64 @@ export default function App() {
       localStorage.setItem('kalabaz_tutorial_seen_v1', '1');
     } catch {}
   }, []);
+
+  // Trigger Chrome native PWA install prompt
+  const handleInstallApp = useCallback(async () => {
+    const outcome = await triggerPWAInstall();
+    if (outcome === 'accepted') {
+      showToast('کلمباز با موفقیت روی صفحه گوشی نصب شد! 🥦📱');
+    } else if (outcome === 'unavailable') {
+      setHelpInitialSlide(1);
+      setIsHelpOpen(true);
+    }
+  }, [triggerPWAInstall, showToast]);
+
+  // Enable daily puzzle notifications
+  const handleEnableNotifications = useCallback(async () => {
+    const res = await requestAndEnableNotifications();
+    setNotificationPermission(res.permission);
+    if (res.ok) {
+      setNotificationsEnabled(true);
+      markDateNotified(getTodayDateString());
+      showToast('اعلان روزانه کلمباز فعال شد! 🔔');
+    } else if (res.permission === 'denied') {
+      setNotificationsEnabled(false);
+      showToast('اعلان در مرورگر مسدود است؛ از تنظیمات سایت کروم آن را Allow کنید.');
+    } else if (res.permission === 'unsupported') {
+      showToast('مرورگر فعلی شما از اعلان پشتیبانی نمی‌کند.');
+    }
+  }, [showToast]);
+
+  // Toggle daily notifications from Settings
+  const handleToggleNotifications = useCallback(async () => {
+    if (notificationPermission === 'granted' && notificationsEnabled) {
+      setDailyNotificationEnabled(false);
+      setNotificationsEnabled(false);
+      showToast('اعلان روزانه غیرفعال شد.');
+      return;
+    }
+    if (notificationPermission === 'denied') {
+      setIsSettingsOpen(false);
+      setHelpInitialSlide(2);
+      setIsHelpOpen(true);
+      return;
+    }
+    await handleEnableNotifications();
+  }, [notificationPermission, notificationsEnabled, handleEnableNotifications, showToast]);
+
+  // Send a test notification right away
+  const handleSendTestNotification = useCallback(async () => {
+    const sent = await showKalabazNotification(
+      '🥦 یادآور آزمایشی کلمباز',
+      'عالی! اعلان‌های روزانه کلمباز روی دستگاه شما به درستی کار می‌کنند.',
+      'kalambaz-test'
+    );
+    if (sent) {
+      showToast('اعلان آزمایشی ارسال شد! 🔔');
+    } else {
+      showToast('امکان نمایش اعلان وجود ندارد؛ تنظیمات اعلان گوشی را بررسی کنید.');
+    }
+  }, [showToast]);
 
   // Handle Login / Signup
   const handleLoginSuccess = (account: UserAccount) => {
@@ -713,7 +823,10 @@ export default function App() {
         canUseHint={canUseHint}
         onUseHint={handleUseHint}
         username={currentAccount?.username}
-        onOpenHelp={() => setIsHelpOpen(true)}
+        onOpenHelp={() => {
+          setHelpInitialSlide(0);
+          setIsHelpOpen(true);
+        }}
         onOpenStats={() => setIsStatsOpen(true)}
         onOpenSettings={() => setIsSettingsOpen(true)}
         onOpenProfile={() => {
@@ -841,12 +954,31 @@ export default function App() {
           setSettings((prev) => ({ ...prev, ...newSettings }))
         }
         canChangeHardMode={currentGame.guesses.length === 0}
+        notificationPermission={notificationPermission}
+        notificationsEnabled={notificationsEnabled}
+        onToggleNotifications={handleToggleNotifications}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        onInstallApp={handleInstallApp}
+        onOpenInstallGuide={() => {
+          setHelpInitialSlide(1);
+          setIsHelpOpen(true);
+        }}
       />
 
       <HelpModal
         isOpen={isHelpOpen}
         onClose={handleCloseHelp}
         darkMode={settings.darkMode}
+        initialSlide={helpInitialSlide}
+        isInstallable={isInstallable}
+        isInstalled={isInstalled}
+        isIOS={isIOS}
+        onInstallApp={handleInstallApp}
+        notificationPermission={notificationPermission}
+        notificationsEnabled={notificationsEnabled}
+        onEnableNotifications={handleEnableNotifications}
+        onSendTestNotification={handleSendTestNotification}
       />
 
       <ContactModal

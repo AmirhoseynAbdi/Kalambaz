@@ -1,6 +1,21 @@
 import React from 'react';
-import { X, Moon, Sun, ShieldAlert, Volume2, VolumeX, Eye } from 'lucide-react';
+import {
+  X,
+  Moon,
+  Sun,
+  Volume2,
+  VolumeX,
+  Eye,
+  Bell,
+  BellOff,
+  Smartphone,
+  Download,
+} from 'lucide-react';
 import { AppSettings } from '../../types';
+import {
+  NotificationPermissionState,
+  getNotificationStatusLabel,
+} from '../../utils/notifications';
 
 interface SettingsModalProps {
   isOpen: boolean;
@@ -8,6 +23,13 @@ interface SettingsModalProps {
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   canChangeHardMode: boolean; // Cannot change hard mode mid-game if already guessed
+  notificationPermission?: NotificationPermissionState;
+  notificationsEnabled?: boolean;
+  onToggleNotifications?: () => void;
+  isInstallable?: boolean;
+  isInstalled?: boolean;
+  onInstallApp?: () => void;
+  onOpenInstallGuide?: () => void;
 }
 
 export const SettingsModal: React.FC<SettingsModalProps> = ({
@@ -16,19 +38,29 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   settings,
   onUpdateSettings,
   canChangeHardMode,
+  notificationPermission = 'default',
+  notificationsEnabled = false,
+  onToggleNotifications,
+  isInstallable = false,
+  isInstalled = false,
+  onInstallApp,
+  onOpenInstallGuide,
 }) => {
   if (!isOpen) return null;
   const darkMode = settings.darkMode;
+  const isNotifActive = notificationPermission === 'granted' && notificationsEnabled;
 
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="تنظیمات کلمباز"
+      onClick={onClose}
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in"
     >
       <div
-        className={`relative w-full max-w-md rounded-2xl border-2 p-5 sm:p-6 shadow-2xl transition-colors ${
+        onClick={(e) => e.stopPropagation()}
+        className={`relative w-full max-w-md rounded-2xl border-2 p-5 sm:p-6 shadow-2xl transition-colors overflow-y-auto max-h-[92vh] ${
           darkMode
             ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
             : 'bg-white border-[#86efac] text-[#14532d]'
@@ -242,6 +274,98 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               />
             </button>
           </div>
+
+          {/* Daily Notifications Toggle */}
+          {onToggleNotifications && (
+            <div className="flex items-center justify-between pt-3">
+              <div className="space-y-0.5 max-w-[78%]">
+                <span className="block text-sm font-extrabold flex items-center gap-1.5">
+                  {isNotifActive ? (
+                    <Bell
+                      className={`w-4 h-4 ${
+                        darkMode ? 'text-[#86efac]' : 'text-[#6b21a8]'
+                      }`}
+                    />
+                  ) : (
+                    <BellOff className="w-4 h-4 opacity-70" />
+                  )}
+                  اعلان روزانه کلمه جدید
+                </span>
+                <p
+                  className={`text-[11px] font-medium ${
+                    darkMode ? 'text-[#d8c7f0]' : 'text-[#166534]'
+                  }`}
+                >
+                  {getNotificationStatusLabel(notificationPermission, notificationsEnabled)}
+                </p>
+              </div>
+
+              <button
+                role="switch"
+                aria-label="اعلان روزانه کلمه جدید"
+                aria-checked={isNotifActive}
+                onClick={onToggleNotifications}
+                className={`w-11 h-6 rounded-full transition-colors relative p-0.5 focus:outline-hidden cursor-pointer ${
+                  isNotifActive
+                    ? darkMode
+                      ? 'bg-[#15803d]'
+                      : 'bg-[#6b21a8]'
+                    : darkMode
+                    ? 'bg-[#161022] border border-[#433266]'
+                    : 'bg-[#dcfce7] border border-[#86efac]'
+                }`}
+              >
+                <div
+                  className={`w-5 h-5 rounded-full bg-white shadow-md transform transition-transform ${
+                    isNotifActive ? '-translate-x-5' : 'translate-x-0'
+                  }`}
+                />
+              </button>
+            </div>
+          )}
+
+          {/* Install App / Home Screen Shortcut */}
+          {!isInstalled && (onInstallApp || onOpenInstallGuide) && (
+            <div className="flex items-center justify-between gap-2 pt-3">
+              <div className="space-y-0.5">
+                <span className="block text-sm font-extrabold flex items-center gap-1.5">
+                  <Smartphone
+                    className={`w-4 h-4 ${
+                      darkMode ? 'text-[#86efac]' : 'text-[#6b21a8]'
+                    }`}
+                  />
+                  نصب روی صفحه گوشی
+                </span>
+                <p
+                  className={`text-[11px] font-medium ${
+                    darkMode ? 'text-[#d8c7f0]' : 'text-[#166534]'
+                  }`}
+                >
+                  ساخت میانبر کلمباز در صفحه اصلی موبایل با کروم.
+                </p>
+              </div>
+
+              <button
+                type="button"
+                onClick={() => {
+                  if (isInstallable && onInstallApp) {
+                    onInstallApp();
+                  } else if (onOpenInstallGuide) {
+                    onClose();
+                    onOpenInstallGuide();
+                  }
+                }}
+                className={`px-3 py-1.5 rounded-xl font-extrabold text-xs text-white flex items-center gap-1.5 transition-colors shrink-0 ${
+                  darkMode
+                    ? 'bg-[#15803d] hover:bg-[#16a34a]'
+                    : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+                }`}
+              >
+                <Download className="w-3.5 h-3.5" />
+                <span>{isInstallable ? 'نصب' : 'راهنما'}</span>
+              </button>
+            </div>
+          )}
         </div>
 
         {/* Footer info */}
