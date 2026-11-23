@@ -1,4 +1,5 @@
 import express from 'express';
+import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
@@ -11,6 +12,18 @@ import {
   sha256Hex,
   sendWebPushWakeup,
 } from './src/server/webPush';
+import {
+  createGeminiPostGenerator,
+  ensureSocialPostSchema,
+  getSocialPostConfig,
+  getTehranDateTime,
+  publishDailySocialPost,
+  publishTelegramPost,
+  publishXPost,
+} from './src/server/socialPosts';
+
+dotenv.config({ path: '.env.local' });
+dotenv.config();
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), '.sqlite-db');
@@ -57,6 +70,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_push_username ON push_subscriptions(username);
   CREATE INDEX IF NOT EXISTS idx_push_last_date ON push_subscriptions(last_pushed_date);
 `);
+ensureSocialPostSchema(db);
 
 function getOrCreateServerVapidKeys(): VapidKeyPair {
   const subject = (process.env.VAPID_SUBJECT || 'mailto:justhawkstuff@gmail.com').trim();
@@ -566,6 +580,53 @@ async function startServer() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`Kalabaz server with SQLite database running on http://0.0.0.0:${PORT}`);
   });
+
+  const { config: socialPostConfig, missing } = getSocialPostConfig();
+  if (!socialPostConfig) {
+    console.info(
+      missing.length
+        ? `Daily social posts are disabled; missing environment variables: ${missing.join(', ')}`
+        : 'Daily social posts are disabled.'
+    );
+    return;
+  }
+
+  const dependencies = {
+    generatePost: createGeminiPostGenerator(socialPostConfig.geminiApiKey, socialPostConfig.postUrl),
+    publishTelegram: (chatId: string, text: string) =>
+      publishTelegramPost(socialPostConfig.telegramBotToken, chatId, text),
+    publishX: (text: string) => publishXPost(socialPostConfig, text),
+  };
+  let running = false;
+  let settledDate = '';
+  let retryAfter = 0;
+  const runIfDue = async () => {
+    const now = new Date();
+    const tehran = getTehranDateTime(now);
+    if (tehran.hour < 9 || settledDate === tehran.date || running || Date.now() < retryAfter) return;
+
+    running = true;
+    try {
+      const result = await publishDailySocialPost(db, socialPostConfig, tehran.date, dependencies);
+      settledDate = tehran.date;
+      retryAfter = 0;
+      console.info('Daily social post dispatch completed:', {
+        date: result.date,
+        deliveries: result.deliveries,
+      });
+    } catch (error) {
+      retryAfter = Date.now() + 5 * 60 * 1000;
+      console.error(
+        `Daily social post generation failed for ${tehran.date}:`,
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    } finally {
+      running = false;
+    }
+  };
+
+  void runIfDue();
+  setInterval(() => void runIfDue(), 60 * 1000);
 }
 
 startServer();
