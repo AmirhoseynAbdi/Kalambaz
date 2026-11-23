@@ -44,12 +44,13 @@ import {
   NotificationPermissionState,
   getBrowserNotificationPermission,
   isDailyNotificationEnabled,
-  setDailyNotificationEnabled,
   getLastNotifiedDate,
   markDateNotified,
   shouldTriggerDailyNotification,
   requestAndEnableNotifications,
   showKalabazNotification,
+  unsubscribeFromWebPush,
+  syncExistingPushSubscription,
 } from './utils/notifications';
 
 import { Header } from './components/Header';
@@ -529,7 +530,7 @@ export default function App() {
   // Toggle daily notifications from Settings
   const handleToggleNotifications = useCallback(async () => {
     if (notificationPermission === 'granted' && notificationsEnabled) {
-      setDailyNotificationEnabled(false);
+      await unsubscribeFromWebPush();
       setNotificationsEnabled(false);
       showToast('اعلان روزانه غیرفعال شد.');
       return;
@@ -561,6 +562,7 @@ export default function App() {
   const handleLoginSuccess = (account: UserAccount) => {
     const wasFirstWinPrompt = loginPromptReason === 'first_win';
     applyAccountState(account);
+    syncExistingPushSubscription().catch(() => {});
     setLoginPromptReason('default');
     showToast(`خوش آمدید، ${account.username}! استریک و امتیاز شما ذخیره شد.`);
     if (wasFirstWinPrompt) {

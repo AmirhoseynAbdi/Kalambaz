@@ -7,7 +7,12 @@
  *   POST /api/auth/login
  *   GET  /api/auth/me
  *   PUT  /api/user/sync
+ *   GET  /api/push/public-key
+ *   POST /api/push/subscribe
+ *   POST /api/push/unsubscribe
  */
+
+require_once __DIR__ . '/web-push-lib.php';
 
 header('Content-Type: application/json; charset=utf-8');
 header('Access-Control-Allow-Origin: *');
@@ -167,6 +172,7 @@ function formatUserAccount(array $row, ?PDO $pdo = null): array {
 
 try {
     [$pdo, $engine] = getDatabaseConnection();
+    ensurePushTables($pdo, $engine);
 } catch (Throwable $e) {
     sendJson(500, [
         'error' => 'خطا در اتصال به دیتابیس هاست. لطفاً تنظیمات فایل api/db-config.php را بررسی کنید.',
@@ -361,6 +367,101 @@ if ($route === 'user/sync' && ($method === 'PUT' || $method === 'POST')) {
         'ok' => true,
         'account' => formatUserAccount($freshRow, $pdo),
     ]);
+}
+
+// 6. GET /api/push/public-key — returns the public VAPID key for browser PushManager.subscribe
+if ($route === 'push/public-key' && $method === 'GET') {
+    try {
+        $configPath = __DIR__ . '/db-config.php';
+        $config = file_exists($configPath) ? require $configPath : [];
+        $vapid = getOrCreateVapidKeys($pdo, $config);
+        sendJson(200, [
+            'publicKey' => $vapid['publicKey'],
+        ]);
+    } catch (Throwable $e) {
+        sendJson(500, ['error' => 'خطا در تولید کلید اعلان سرور.']);
+    }
+}
+
+// 7. POST /api/push/subscribe — save or update a browser Web Push subscription
+if ($route === 'push/subscribe' && $method === 'POST') {
+    $epCheck = validatePushEndpointUrl($body['endpoint'] ?? null);
+    if (!$epCheck['valid']) {
+        sendJson(400, ['error' => $epCheck['error']]);
+    }
+
+    $keys = isset($body['keys']) && is_array($body['keys']) ? $body['keys'] : [];
+    $keyCheck = validatePushKeys($keys['p256dh'] ?? null, $keys['auth'] ?? null);
+    if (!$keyCheck['valid']) {
+        sendJson(400, ['error' => $keyCheck['error']]);
+    }
+
+    // Optionally link subscription to authenticated user when Bearer token is present
+    $linkedUsername = null;
+    $token = getBearerToken();
+    if ($token !== '') {
+        $uStmt = $pdo->prepare('SELECT username FROM users WHERE session_token = ?');
+        $uStmt->execute([$token]);
+        $uRow = $uStmt->fetch();
+        if ($uRow && !empty($uRow['username'])) {
+            $linkedUsername = (string)$uRow['username'];
+        }
+    }
+
+    $endpoint = $epCheck['endpoint'];
+    $endpointHash = hash('sha256', $endpoint);
+    $now = gmdate('Y-m-d\TH:i:s\Z');
+
+    $existingStmt = $pdo->prepare('SELECT endpoint_hash, username FROM push_subscriptions WHERE endpoint_hash = ?');
+    $existingStmt->execute([$endpointHash]);
+    $existing = $existingStmt->fetch();
+
+    if ($existing) {
+        $finalUsername = $linkedUsername !== null ? $linkedUsername : ($existing['username'] ?? null);
+        $upd = $pdo->prepare('
+            UPDATE push_subscriptions
+            SET endpoint = ?, p256dh = ?, auth = ?, username = ?, updated_at = ?
+            WHERE endpoint_hash = ?
+        ');
+        $upd->execute([
+            $endpoint,
+            $keyCheck['p256dh'],
+            $keyCheck['auth'],
+            $finalUsername,
+            $now,
+            $endpointHash,
+        ]);
+    } else {
+        $ins = $pdo->prepare('
+            INSERT INTO push_subscriptions (endpoint_hash, endpoint, p256dh, auth, username, created_at, updated_at, last_pushed_date)
+            VALUES (?, ?, ?, ?, ?, ?, ?, NULL)
+        ');
+        $ins->execute([
+            $endpointHash,
+            $endpoint,
+            $keyCheck['p256dh'],
+            $keyCheck['auth'],
+            $linkedUsername,
+            $now,
+            $now,
+        ]);
+    }
+
+    sendJson(200, ['ok' => true, 'subscribed' => true]);
+}
+
+// 8. POST /api/push/unsubscribe — remove a browser Web Push subscription
+if ($route === 'push/unsubscribe' && $method === 'POST') {
+    $epCheck = validatePushEndpointUrl($body['endpoint'] ?? null);
+    if (!$epCheck['valid']) {
+        sendJson(400, ['error' => $epCheck['error']]);
+    }
+
+    $endpointHash = hash('sha256', $epCheck['endpoint']);
+    $del = $pdo->prepare('DELETE FROM push_subscriptions WHERE endpoint_hash = ?');
+    $del->execute([$endpointHash]);
+
+    sendJson(200, ['ok' => true, 'subscribed' => false]);
 }
 
 sendJson(404, ['error' => 'مسیر API یافت نشد.']);

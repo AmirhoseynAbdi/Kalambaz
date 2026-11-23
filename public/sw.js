@@ -1,4 +1,4 @@
-const CACHE_NAME = 'kalambaz-pwa-v1';
+const CACHE_NAME = 'kalambaz-pwa-v2';
 const CORE_ASSETS = [
   '/',
   '/index.html',
@@ -71,9 +71,62 @@ self.addEventListener('fetch', (event) => {
   );
 });
 
+// Handle real background Web Push notifications even when Chrome/PWA is closed
+self.addEventListener('push', (event) => {
+  let payload = {
+    title: '🥦 کلمه جدید امروز کلمباز آماده است!',
+    body: 'معماهای ۴، ۵ و ۶ حرفی امروز منتشر شدند — وارد شوید و استریک خود را حفظ کنید!',
+    url: '/',
+    tag: 'kalambaz-daily-push',
+  };
+
+  if (event.data) {
+    try {
+      const parsed = event.data.json();
+      if (parsed && typeof parsed === 'object') {
+        payload = {
+          title: typeof parsed.title === 'string' && parsed.title ? parsed.title : payload.title,
+          body: typeof parsed.body === 'string' && parsed.body ? parsed.body : payload.body,
+          url:
+            typeof parsed.url === 'string' &&
+            parsed.url.startsWith('/') &&
+            !parsed.url.startsWith('//')
+              ? parsed.url
+              : '/',
+          tag: typeof parsed.tag === 'string' && parsed.tag ? parsed.tag : payload.tag,
+        };
+      }
+    } catch {
+      try {
+        const text = event.data.text();
+        if (text) payload.body = text;
+      } catch {}
+    }
+  }
+
+  event.waitUntil(
+    self.registration.showNotification(payload.title, {
+      body: payload.body,
+      icon: '/icon-192.png',
+      badge: '/favicon-96x96.png',
+      dir: 'rtl',
+      lang: 'fa-IR',
+      tag: payload.tag,
+      renotify: true,
+      data: { url: payload.url },
+    })
+  );
+});
+
 // Focus or open Kalambaz when the user taps a daily reminder notification
 self.addEventListener('notificationclick', (event) => {
   event.notification.close();
+  const rawUrl =
+    event.notification.data && typeof event.notification.data.url === 'string'
+      ? event.notification.data.url
+      : '/';
+  const targetUrl = rawUrl.startsWith('/') && !rawUrl.startsWith('//') ? rawUrl : '/';
+
   event.waitUntil(
     self.clients.matchAll({ type: 'window', includeUncontrolled: true }).then((clients) => {
       for (const client of clients) {
@@ -82,7 +135,7 @@ self.addEventListener('notificationclick', (event) => {
         }
       }
       if (self.clients.openWindow) {
-        return self.clients.openWindow('/');
+        return self.clients.openWindow(targetUrl);
       }
       return undefined;
     })

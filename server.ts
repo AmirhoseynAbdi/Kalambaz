@@ -3,6 +3,14 @@ import path from 'path';
 import fs from 'fs';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
+import {
+  VapidKeyPair,
+  generateVapidKeyPair,
+  validatePushEndpoint,
+  validateSubscriptionKeys,
+  sha256Hex,
+  sendWebPushWakeup,
+} from './src/server/webPush';
 
 const PORT = Number(process.env.PORT) || 3000;
 const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), '.sqlite-db');
@@ -29,7 +37,61 @@ db.exec(`
     updated_at TEXT NOT NULL
   );
   CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
+
+  CREATE TABLE IF NOT EXISTS app_settings (
+    setting_key TEXT PRIMARY KEY,
+    setting_value TEXT NOT NULL,
+    updated_at TEXT NOT NULL
+  );
+
+  CREATE TABLE IF NOT EXISTS push_subscriptions (
+    endpoint_hash TEXT PRIMARY KEY,
+    endpoint TEXT NOT NULL,
+    p256dh TEXT NOT NULL,
+    auth TEXT NOT NULL,
+    username TEXT DEFAULT NULL,
+    created_at TEXT NOT NULL,
+    updated_at TEXT NOT NULL,
+    last_pushed_date TEXT DEFAULT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_push_username ON push_subscriptions(username);
+  CREATE INDEX IF NOT EXISTS idx_push_last_date ON push_subscriptions(last_pushed_date);
 `);
+
+function getOrCreateServerVapidKeys(): VapidKeyPair {
+  const subject = (process.env.VAPID_SUBJECT || 'mailto:justhawkstuff@gmail.com').trim();
+  const envPub = (process.env.VAPID_PUBLIC_KEY || '').trim();
+  const envPriv = (process.env.VAPID_PRIVATE_KEY || '').trim();
+  if (envPub && envPriv) {
+    return { publicKey: envPub, privateKeyPem: envPriv, subject };
+  }
+
+  const rows = db
+    .prepare('SELECT setting_key, setting_value FROM app_settings WHERE setting_key IN (?, ?)')
+    .all('vapid_public_key', 'vapid_private_pem') as {
+    setting_key: string;
+    setting_value: string;
+  }[];
+
+  const pubRow = rows.find((r) => r.setting_key === 'vapid_public_key');
+  const privRow = rows.find((r) => r.setting_key === 'vapid_private_pem');
+  if (pubRow?.setting_value && privRow?.setting_value) {
+    return {
+      publicKey: pubRow.setting_value,
+      privateKeyPem: privRow.setting_value,
+      subject,
+    };
+  }
+
+  const generated = generateVapidKeyPair(subject);
+  const now = new Date().toISOString();
+  const upsert = db.prepare(
+    'INSERT OR REPLACE INTO app_settings (setting_key, setting_value, updated_at) VALUES (?, ?, ?)'
+  );
+  upsert.run('vapid_public_key', generated.publicKey, now);
+  upsert.run('vapid_private_pem', generated.privateKeyPem, now);
+  return generated;
+}
 
 const DEFAULT_STATS = {
   gamesPlayed: 0,
@@ -310,6 +372,178 @@ async function startServer() {
     } catch (err) {
       console.error('Sync error:', err);
       res.status(500).json({ error: 'خطا در ذخیره‌سازی اطلاعات کاربر.' });
+    }
+  });
+
+  // Web Push: return server public VAPID key
+  app.get('/api/push/public-key', (_req, res) => {
+    try {
+      const vapid = getOrCreateServerVapidKeys();
+      res.json({ publicKey: vapid.publicKey });
+    } catch (err) {
+      console.error('VAPID public key error:', err);
+      res.status(500).json({ error: 'خطا در بازیابی کلید اعلان سرور.' });
+    }
+  });
+
+  // Web Push: subscribe device endpoint
+  app.post('/api/push/subscribe', (req, res) => {
+    try {
+      const epCheck = validatePushEndpoint(req.body?.endpoint);
+      if (!epCheck.valid || !epCheck.endpoint) {
+        res.status(400).json({ error: epCheck.error });
+        return;
+      }
+
+      const keyCheck = validateSubscriptionKeys(req.body?.keys?.p256dh, req.body?.keys?.auth);
+      if (!keyCheck.valid || !keyCheck.p256dh || !keyCheck.auth) {
+        res.status(400).json({ error: keyCheck.error });
+        return;
+      }
+
+      let linkedUsername: string | null = null;
+      const authHeader = req.headers.authorization || '';
+      const token = authHeader.startsWith('Bearer ') ? authHeader.slice(7).trim() : '';
+      if (token) {
+        const userRow = db
+          .prepare('SELECT username FROM users WHERE session_token = ?')
+          .get(token) as { username: string } | undefined;
+        if (userRow?.username) {
+          linkedUsername = userRow.username;
+        }
+      }
+
+      const endpointHash = sha256Hex(epCheck.endpoint);
+      const now = new Date().toISOString();
+      const existing = db
+        .prepare('SELECT endpoint_hash, username FROM push_subscriptions WHERE endpoint_hash = ?')
+        .get(endpointHash) as { endpoint_hash: string; username: string | null } | undefined;
+
+      if (existing) {
+        db.prepare(
+          `UPDATE push_subscriptions
+           SET endpoint = ?, p256dh = ?, auth = ?, username = ?, updated_at = ?
+           WHERE endpoint_hash = ?`
+        ).run(
+          epCheck.endpoint,
+          keyCheck.p256dh,
+          keyCheck.auth,
+          linkedUsername ?? existing.username,
+          now,
+          endpointHash
+        );
+      } else {
+        db.prepare(
+          `INSERT INTO push_subscriptions
+           (endpoint_hash, endpoint, p256dh, auth, username, created_at, updated_at, last_pushed_date)
+           VALUES (?, ?, ?, ?, ?, ?, ?, NULL)`
+        ).run(
+          endpointHash,
+          epCheck.endpoint,
+          keyCheck.p256dh,
+          keyCheck.auth,
+          linkedUsername,
+          now,
+          now
+        );
+      }
+
+      res.json({ ok: true, subscribed: true });
+    } catch (err) {
+      console.error('Push subscribe error:', err);
+      res.status(500).json({ error: 'خطا در ثبت اشتراک اعلان.' });
+    }
+  });
+
+  // Web Push: unsubscribe device endpoint
+  app.post('/api/push/unsubscribe', (req, res) => {
+    try {
+      const epCheck = validatePushEndpoint(req.body?.endpoint);
+      if (!epCheck.valid || !epCheck.endpoint) {
+        res.status(400).json({ error: epCheck.error });
+        return;
+      }
+      db.prepare('DELETE FROM push_subscriptions WHERE endpoint_hash = ?').run(
+        sha256Hex(epCheck.endpoint)
+      );
+      res.json({ ok: true, subscribed: false });
+    } catch (err) {
+      console.error('Push unsubscribe error:', err);
+      res.status(500).json({ error: 'خطا در لغو اشتراک اعلان.' });
+    }
+  });
+
+  // Web Push: cron-triggered daily push dispatch (requires PUSH_CRON_SECRET header)
+  app.post('/api/push/send-daily', async (req, res) => {
+    try {
+      const expectedSecret = (process.env.PUSH_CRON_SECRET || '').trim();
+      if (!expectedSecret) {
+        res.status(503).json({ error: 'PUSH_CRON_SECRET is not configured on the server.' });
+        return;
+      }
+      const provided = String(req.headers['x-push-cron-secret'] || '').trim();
+      const expectedBuf = Buffer.from(expectedSecret, 'utf8');
+      const providedBuf = Buffer.from(provided, 'utf8');
+      if (
+        expectedBuf.length !== providedBuf.length ||
+        !crypto.timingSafeEqual(expectedBuf, providedBuf)
+      ) {
+        res.status(401).json({ error: 'Unauthorized cron trigger.' });
+        return;
+      }
+
+      const vapid = getOrCreateServerVapidKeys();
+      const todayTehran = new Intl.DateTimeFormat('en-CA', {
+        timeZone: 'Asia/Tehran',
+        year: 'numeric',
+        month: '2-digit',
+        day: '2-digit',
+      }).format(new Date());
+
+      const force = Boolean(req.body?.force);
+      const subs = (
+        force
+          ? db.prepare('SELECT endpoint_hash, endpoint, p256dh, auth, username FROM push_subscriptions').all()
+          : db
+              .prepare(
+                'SELECT endpoint_hash, endpoint, p256dh, auth, username FROM push_subscriptions WHERE last_pushed_date IS NULL OR last_pushed_date != ?'
+              )
+              .all(todayTehran)
+      ) as {
+        endpoint_hash: string;
+        endpoint: string;
+        p256dh: string;
+        auth: string;
+        username: string | null;
+      }[];
+
+      const markStmt = db.prepare(
+        'UPDATE push_subscriptions SET last_pushed_date = ?, updated_at = ? WHERE endpoint_hash = ?'
+      );
+      const delStmt = db.prepare('DELETE FROM push_subscriptions WHERE endpoint_hash = ?');
+
+      let sent = 0;
+      let pruned = 0;
+      let failed = 0;
+      const nowIso = new Date().toISOString();
+
+      for (const sub of subs) {
+        const result = await sendWebPushWakeup(sub, vapid, 86400);
+        if (result.ok) {
+          markStmt.run(todayTehran, nowIso, sub.endpoint_hash);
+          sent++;
+        } else if (result.expired) {
+          delStmt.run(sub.endpoint_hash);
+          pruned++;
+        } else {
+          failed++;
+        }
+      }
+
+      res.json({ ok: true, dateTehran: todayTehran, totalChecked: subs.length, sent, pruned, failed });
+    } catch (err) {
+      console.error('Send daily push error:', err);
+      res.status(500).json({ error: 'Failed to dispatch daily push notifications.' });
     }
   });
 
