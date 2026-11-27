@@ -20,22 +20,34 @@ const config: SocialPostConfig = {
   postUrl: 'https://kalambaz.ir',
 };
 
-test('social post config stays disabled until all credentials exist and requires an HTTPS URL', () => {
-  assert.deepEqual(getSocialPostConfig({}).missing.length, 8);
+test('social post config stays disabled until required credentials exist, makes chat 2 optional, and requires HTTPS URL', () => {
+  assert.deepEqual(getSocialPostConfig({}).missing.length, 7);
 
-  const env = {
+  const singleChatEnv = {
     GEMINI_API_KEY: config.geminiApiKey,
     TELEGRAM_BOT_TOKEN: config.telegramBotToken,
     TELEGRAM_CHAT_ID_1: config.telegramChatIds[0],
-    TELEGRAM_CHAT_ID_2: config.telegramChatIds[1],
     X_API_KEY: config.xApiKey,
     X_API_SECRET: config.xApiSecret,
     X_ACCESS_TOKEN: config.xAccessToken,
     X_ACCESS_TOKEN_SECRET: config.xAccessTokenSecret,
     SOCIAL_POSTS_URL: config.postUrl,
   };
-  assert.equal(getSocialPostConfig(env).config?.postUrl, config.postUrl);
-  assert.throws(() => getSocialPostConfig({ ...env, SOCIAL_POSTS_URL: 'http://kalambaz.ir' }), /HTTPS/);
+  const singleResolved = getSocialPostConfig(singleChatEnv);
+  assert.equal(singleResolved.missing.length, 0);
+  assert.deepEqual(singleResolved.config?.telegramChatIds, [config.telegramChatIds[0]]);
+  assert.equal(singleResolved.config?.postUrl, config.postUrl);
+
+  const twoChatResolved = getSocialPostConfig({
+    ...singleChatEnv,
+    TELEGRAM_CHAT_ID_2: config.telegramChatIds[1],
+  });
+  assert.deepEqual(twoChatResolved.config?.telegramChatIds, config.telegramChatIds);
+
+  assert.throws(
+    () => getSocialPostConfig({ ...singleChatEnv, SOCIAL_POSTS_URL: 'http://kalambaz.ir' }),
+    /HTTPS/
+  );
 });
 
 test('daily schedule uses the Tehran calendar and time', () => {
@@ -94,6 +106,37 @@ test('daily dispatch persists one generated post and never repeats destination a
       (db.prepare('SELECT COUNT(*) AS count FROM social_post_runs').get() as { count: number }).count,
       1
     );
+  } finally {
+    db.close();
+  }
+});
+
+test('daily dispatch works cleanly with only one Telegram chat configured', async () => {
+  const db = new Database(':memory:');
+  const singleChatConfig: SocialPostConfig = {
+    ...config,
+    telegramChatIds: ['@kalambaz_ir'],
+  };
+  const sentChats: string[] = [];
+  let xSent = 0;
+
+  try {
+    const res = await publishDailySocialPost(db, singleChatConfig, '2026-11-27', {
+      generatePost: async () => 'کلمه امروز رو می‌تونی حدس بزنی؟',
+      publishTelegram: async (chatId) => {
+        sentChats.push(chatId);
+      },
+      publishX: async () => {
+        xSent++;
+      },
+    });
+
+    assert.deepEqual(sentChats, ['@kalambaz_ir']);
+    assert.equal(xSent, 1);
+    assert.deepEqual(res.deliveries, [
+      { target: 'telegram-1', status: 'sent' },
+      { target: 'x', status: 'sent' },
+    ]);
   } finally {
     db.close();
   }

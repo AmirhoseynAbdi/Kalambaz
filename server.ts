@@ -2,16 +2,17 @@ import express from 'express';
 import dotenv from 'dotenv';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import crypto from 'crypto';
 import Database from 'better-sqlite3';
 import {
-  VapidKeyPair,
+  type VapidKeyPair,
   generateVapidKeyPair,
   validatePushEndpoint,
   validateSubscriptionKeys,
   sha256Hex,
   sendWebPushWakeup,
-} from './src/server/webPush';
+} from './src/server/webPush.ts';
 import {
   createGeminiPostGenerator,
   ensureSocialPostSchema,
@@ -20,19 +21,26 @@ import {
   publishDailySocialPost,
   publishTelegramPost,
   publishXPost,
-} from './src/server/socialPosts';
+} from './src/server/socialPosts.ts';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
 
 const PORT = Number(process.env.PORT) || 3000;
-const DATA_DIR = process.env.DATA_DIR || path.join(process.cwd(), '.sqlite-db');
+let dataDir = process.env.DATA_DIR || path.join(process.cwd(), '.sqlite-db');
 
-if (!fs.existsSync(DATA_DIR)) {
-  fs.mkdirSync(DATA_DIR, { recursive: true });
+try {
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
+} catch {
+  dataDir = path.join(os.tmpdir(), 'kalabaz-sqlite-db');
+  if (!fs.existsSync(dataDir)) {
+    fs.mkdirSync(dataDir, { recursive: true });
+  }
 }
 
-const DB_PATH = process.env.DB_PATH || path.join(DATA_DIR, 'kalabaz.db');
+const DB_PATH = process.env.DB_PATH || path.join(dataDir, 'kalabaz.db');
 const db = new Database(DB_PATH);
 
 // Enable WAL mode for high concurrency and performance
@@ -581,7 +589,19 @@ async function startServer() {
     console.log(`Kalabaz server with SQLite database running on http://0.0.0.0:${PORT}`);
   });
 
-  const { config: socialPostConfig, missing } = getSocialPostConfig();
+  let socialPostConfig;
+  let missing: string[] = [];
+  try {
+    const resolved = getSocialPostConfig();
+    socialPostConfig = resolved.config;
+    missing = resolved.missing;
+  } catch (error) {
+    console.error(
+      'Daily social posts are disabled due to invalid configuration:',
+      error instanceof Error ? error.message : 'Unknown error'
+    );
+    return;
+  }
   if (!socialPostConfig) {
     console.info(
       missing.length

@@ -34,3 +34,22 @@ CREATE TABLE IF NOT EXISTS `push_subscriptions` (
   KEY `idx_push_username` (`username`),
   KEY `idx_push_last_date` (`last_pushed_date`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `social_post_runs` (
+  `date` VARCHAR(20) NOT NULL,
+  `post_text` TEXT NOT NULL,
+  `created_at` VARCHAR(40) NOT NULL,
+  PRIMARY KEY (`date`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `social_post_deliveries` (
+  `date` VARCHAR(20) NOT NULL,
+  `target` VARCHAR(32) NOT NULL,
+  `status` VARCHAR(16) NOT NULL,
+  `error` TEXT DEFAULT NULL,
+  `updated_at` VARCHAR(40) NOT NULL,
+  PRIMARY KEY (`date`, `target`),
+  CONSTRAINT `fk_social_deliveries_run`
+    FOREIGN KEY (`date`) REFERENCES `social_post_runs` (`date`)
+    ON DELETE CASCADE
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

@@ -7,7 +7,7 @@ const X_POSTS_URL = 'https://api.x.com/2/tweets';
 export interface SocialPostConfig {
   geminiApiKey: string;
   telegramBotToken: string;
-  telegramChatIds: [string, string];
+  telegramChatIds: string[];
   xApiKey: string;
   xApiSecret: string;
   xAccessToken: string;
@@ -30,7 +30,6 @@ const REQUIRED_ENV_VARS = [
   'GEMINI_API_KEY',
   'TELEGRAM_BOT_TOKEN',
   'TELEGRAM_CHAT_ID_1',
-  'TELEGRAM_CHAT_ID_2',
   'X_API_KEY',
   'X_API_SECRET',
   'X_ACCESS_TOKEN',
@@ -40,6 +39,7 @@ const REQUIRED_ENV_VARS = [
 type SocialPostEnvironment = Partial<
   Record<(typeof REQUIRED_ENV_VARS)[number], string | undefined>
 > & {
+  TELEGRAM_CHAT_ID_2?: string | undefined;
   APP_URL?: string | undefined;
   SOCIAL_POSTS_URL?: string | undefined;
 };
@@ -52,6 +52,11 @@ export function getSocialPostConfig(env: SocialPostEnvironment = process.env): {
   if (missing.length) return { missing: [...missing] };
 
   const value = (name: (typeof REQUIRED_ENV_VARS)[number]) => env[name]!.trim();
+  const secondChatId = (env.TELEGRAM_CHAT_ID_2 || '').trim();
+  const telegramChatIds = secondChatId
+    ? [value('TELEGRAM_CHAT_ID_1'), secondChatId]
+    : [value('TELEGRAM_CHAT_ID_1')];
+
   const postUrl = (env.SOCIAL_POSTS_URL || env.APP_URL || 'https://kalambaz.ir').trim();
   let parsedUrl: URL;
   try {
@@ -67,7 +72,7 @@ export function getSocialPostConfig(env: SocialPostEnvironment = process.env): {
     config: {
       geminiApiKey: value('GEMINI_API_KEY'),
       telegramBotToken: value('TELEGRAM_BOT_TOKEN'),
-      telegramChatIds: [value('TELEGRAM_CHAT_ID_1'), value('TELEGRAM_CHAT_ID_2')],
+      telegramChatIds,
       xApiKey: value('X_API_KEY'),
       xApiSecret: value('X_API_SECRET'),
       xAccessToken: value('X_ACCESS_TOKEN'),
@@ -120,7 +125,14 @@ export function createGeminiPostGenerator(
   apiKey: string,
   postUrl: string
 ): SocialPostDependencies['generatePost'] {
-  const ai = new GoogleGenAI({ apiKey });
+  const ai = new GoogleGenAI({
+    apiKey,
+    httpOptions: {
+      headers: {
+        'User-Agent': 'aistudio-build',
+      },
+    },
+  });
 
   return async (date) => {
     const response = await ai.models.generateContent({
@@ -271,8 +283,10 @@ export async function publishDailySocialPost(
   if (!run) throw new Error(`Could not persist the social post for ${date}.`);
 
   const targets = [
-    { name: 'telegram-1', publish: () => dependencies.publishTelegram(config.telegramChatIds[0], run!.post_text) },
-    { name: 'telegram-2', publish: () => dependencies.publishTelegram(config.telegramChatIds[1], run!.post_text) },
+    ...config.telegramChatIds.map((chatId, idx) => ({
+      name: `telegram-${idx + 1}`,
+      publish: () => dependencies.publishTelegram(chatId, run!.post_text),
+    })),
     { name: 'x', publish: () => dependencies.publishX(run!.post_text) },
   ];
   const insertDelivery = db.prepare(
