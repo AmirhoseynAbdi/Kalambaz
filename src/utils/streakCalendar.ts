@@ -19,8 +19,37 @@ export const PERSIAN_MONTH_NAMES = [
 // Standard Iranian calendar weekday order: Saturday (0) -> Friday (6)
 export const PERSIAN_WEEKDAYS_SHORT = ['ش', 'ی', 'د', 'س', 'چ', 'پ', 'ج'] as const;
 
-export type StreakTier = 'none' | 'normal' | 'hot' | 'fire';
+export type StreakTier = 'none' | 'green' | 'silver' | 'gold' | 'diamond' | 'plasma';
+export type ActiveStreakTier = Exclude<StreakTier, 'none'>;
 export type StreakPosition = 'none' | 'single' | 'start' | 'middle' | 'end';
+
+export interface StreakTierInfo {
+  tier: ActiveStreakTier;
+  labelFa: string;
+  minDays: number;
+}
+
+export const STREAK_TIER_LIST: readonly StreakTierInfo[] = [
+  { tier: 'green', labelFa: 'سبز', minDays: 1 },
+  { tier: 'silver', labelFa: 'نقره‌ای', minDays: 3 },
+  { tier: 'gold', labelFa: 'طلایی', minDays: 7 },
+  { tier: 'diamond', labelFa: 'الماسی', minDays: 14 },
+  { tier: 'plasma', labelFa: 'پلاسما', minDays: 30 },
+] as const;
+
+export function getStreakTier(streakLength: number): StreakTier {
+  if (streakLength >= 30) return 'plasma';
+  if (streakLength >= 14) return 'diamond';
+  if (streakLength >= 7) return 'gold';
+  if (streakLength >= 3) return 'silver';
+  if (streakLength >= 1) return 'green';
+  return 'none';
+}
+
+export function getStreakTierLabelFa(tier: StreakTier): string {
+  const found = STREAK_TIER_LIST.find((t) => t.tier === tier);
+  return found ? found.labelFa : '';
+}
 
 export interface StreakDateMeta {
   streakLength: number;
@@ -223,10 +252,12 @@ export function getEffectiveCompletedDates(
 }
 
 /**
- * Computes contiguous winning streak runs across all completed dates.
- * - 1..2 consecutive days -> 'normal'
- * - 3..6 consecutive days -> 'hot'
- * - 7+ consecutive days   -> 'fire' (long winning streak highlight)
+ * Computes contiguous winning streak runs across all completed dates:
+ * - 1..2 consecutive days  -> 'green'
+ * - 3..6 consecutive days  -> 'silver'
+ * - 7..13 consecutive days -> 'gold'
+ * - 14..29 consecutive days -> 'diamond'
+ * - 30+ consecutive days   -> 'plasma'
  */
 export function computeWinningStreakRuns(
   completedDates: Record<string, (4 | 5 | 6)[]>
@@ -253,7 +284,7 @@ export function computeWinningStreakRuns(
     runId += 1;
     const len = endIdx - startIdx + 1;
     if (len > longestWinningStreak) longestWinningStreak = len;
-    const tier: StreakTier = len >= 7 ? 'fire' : len >= 3 ? 'hot' : 'normal';
+    const tier = getStreakTier(len);
 
     for (let i = startIdx; i <= endIdx; i++) {
       const position: StreakPosition =

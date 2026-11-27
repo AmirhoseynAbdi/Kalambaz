@@ -880,18 +880,18 @@ export default function App() {
       dir="rtl"
       className={`relative h-[100dvh] min-h-[540px] lg:min-h-screen lg:h-auto overflow-hidden lg:overflow-visible flex flex-col justify-between transition-colors duration-200 ${
         settings.darkMode
-          ? 'bg-[#161022] text-[#f5f3ff]'
-          : 'bg-[#f0fdf4] text-[#14532d]'
+          ? 'bg-[#140e21] text-[#f5f3ff]'
+          : 'bg-[#eefaf2] text-[#14532d]'
       }`}
     >
       {/* Toast Notification */}
       {toastMessage && (
         <div className="fixed top-14 left-1/2 -translate-x-1/2 z-50 pointer-events-none animate-bounce w-max max-w-[92vw]">
           <div
-            className={`px-4 py-2 rounded-xl border-2 text-xs sm:text-sm font-extrabold shadow-lg text-center ${
+            className={`px-4 py-2.5 rounded-xl text-xs sm:text-sm font-extrabold shadow-xl text-center ${
               settings.darkMode
-                ? 'bg-[#201733] border-[#22c55e] text-[#dcfce7]'
-                : 'bg-[#6b21a8] border-[#581c87] text-white'
+                ? 'bg-[#15803d] text-white shadow-black/45'
+                : 'bg-[#6b21a8] text-white shadow-purple-950/25'
             }`}
           >
             {toastMessage}

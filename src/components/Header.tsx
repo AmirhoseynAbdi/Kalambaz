@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { DailyGameState } from '../types';
 import { calculateGuessPoints } from '../game/wordleLogic';
+import { getStreakTier, getStreakTierLabelFa, StreakTier } from '../utils/streakCalendar';
 import { GreenSeedIcon } from './GreenSeedIcon';
 
 interface HeaderProps {
@@ -34,15 +35,15 @@ interface HeaderProps {
 
 const LENGTH_TAB_THEME: Record<4 | 5 | 6, { active: string; dot: string }> = {
   4: {
-    active: 'bg-[#15803d] text-white ring-1 ring-[#4ade80]/80 shadow-xs',
+    active: 'bg-[#15803d] text-white shadow-sm',
     dot: 'bg-[#4ade80]',
   },
   5: {
-    active: 'bg-[#7e22ce] text-white ring-1 ring-[#c084fc]/80 shadow-xs',
+    active: 'bg-[#7e22ce] text-white shadow-sm',
     dot: 'bg-[#c084fc]',
   },
   6: {
-    active: 'bg-[#d97706] text-white ring-1 ring-[#fbbf24]/80 shadow-xs',
+    active: 'bg-[#d97706] text-white shadow-sm',
     dot: 'bg-[#fbbf24]',
   },
 };
@@ -65,20 +66,20 @@ export const Header: React.FC<HeaderProps> = ({
   hardMode,
   gameStates,
 }) => {
-  const iconBtnClass = `w-8 h-8 sm:w-10 sm:h-10 rounded-xl border flex items-center justify-center transition-colors active:scale-95 shrink-0 ${
+  const iconBtnClass = `w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors active:scale-95 shrink-0 ${
     darkMode
-      ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd] hover:bg-[#352752] hover:text-white'
-      : 'bg-[#dcfce7] border-[#86efac] text-[#166534] hover:bg-[#bbf7d0]'
+      ? 'bg-[#2e224b] text-[#d8c8ff] hover:bg-[#3c2d62] hover:text-white'
+      : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]'
   }`;
 
   return (
     <header className="relative z-10 w-full max-w-7xl mx-auto px-1.5 sm:px-4 lg:px-6 pt-1.5 sm:pt-2 pb-1 shrink-0">
       {/* Main Top Bar */}
       <div
-        className={`flex items-center justify-between gap-1 sm:gap-2.5 border px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl transition-colors ${
+        className={`flex items-center justify-between gap-1 sm:gap-2.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl transition-colors ${
           darkMode
-            ? 'bg-[#201733] border-[#362854] text-[#f5f3ff]'
-            : 'bg-white border-[#86efac] text-[#14532d] shadow-2xs'
+            ? 'bg-[#211836] text-[#f5f3ff] shadow-md shadow-black/25'
+            : 'bg-white text-[#14532d] shadow-md shadow-emerald-950/6'
         }`}
       >
         {/* Right Zone (RTL Start): Brand Identity */}
@@ -103,10 +104,10 @@ export const Header: React.FC<HeaderProps> = ({
 
           {hardMode && (
             <span
-              className={`hidden sm:inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-lg border whitespace-nowrap ${
+              className={`hidden sm:inline-block text-[10px] font-extrabold px-2 py-0.5 rounded-lg whitespace-nowrap ${
                 darkMode
-                  ? 'text-[#86efac] bg-[#14532d] border-[#22c55e]'
-                  : 'text-[#581c87] bg-[#f3e8ff] border-[#9333ea]'
+                  ? 'text-[#bbf7d0] bg-[#164a2d]'
+                  : 'text-[#581c87] bg-[#ede9fe]'
               }`}
             >
               حالت سخت
@@ -124,10 +125,8 @@ export const Header: React.FC<HeaderProps> = ({
             حالت کلمه:
           </span>
           <div
-            className={`inline-flex rounded-xl p-1 border ${
-              darkMode
-                ? 'bg-[#161022] border-[#362854]'
-                : 'bg-[#dcfce7] border-[#86efac]'
+            className={`inline-flex rounded-xl p-1 gap-0.5 ${
+              darkMode ? 'bg-[#150f24]' : 'bg-[#e3f6ea]'
             }`}
           >
             {([4, 5, 6] as const).map((len) => {
@@ -146,8 +145,8 @@ export const Header: React.FC<HeaderProps> = ({
                     isSelected
                       ? theme.active
                       : darkMode
-                      ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
-                      : 'text-[#166534] hover:bg-[#bbf7d0]'
+                      ? 'text-[#c4b5fd] hover:text-white hover:bg-[#2a1f44]'
+                      : 'text-[#166534] hover:bg-[#ccefd9]'
                   }`}
                 >
                   <span
@@ -165,37 +164,69 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Left Zone (RTL End): Streak, Seeds, Green Hint, Help, Contact Us, Settings, Profile */}
         <div className="flex items-center gap-[3px] sm:gap-1.5 shrink-0">
-          {/* Daily Streak Viewing Button (Unified Streak & Stats Button) */}
-          <button
-            type="button"
-            onClick={onOpenStats}
-            aria-label={`مشاهده استریک و آمار: ${streak} روز`}
-            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-colors text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${
-              darkMode
-                ? 'bg-[#291e40] border-[#433266] text-[#e9d5ff] hover:bg-[#352752]'
-                : 'bg-[#dcfce7] border-[#86efac] text-[#14532d] hover:bg-[#bbf7d0]'
-            }`}
-            title="مشاهده استریک روزانه و آمار"
-          >
-            <Flame
-              className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                darkMode
-                  ? 'text-[#a855f7] fill-[#a855f7]'
-                  : 'text-[#16a34a] fill-[#22c55e]'
-              }`}
-            />
-            <span>{streak.toLocaleString('fa-IR')}</span>
-          </button>
+          {/* Daily Streak Viewing Button (Tiered: Green, Silver, Gold, Diamond, Plasma) */}
+          {(() => {
+            const streakTier: StreakTier = getStreakTier(streak);
+            const tierLabel = getStreakTierLabelFa(streakTier);
+            const streakBtnStyle =
+              streakTier === 'plasma'
+                ? 'animate-streak-plasma text-white shadow-sm'
+                : streakTier === 'diamond'
+                ? 'bg-gradient-to-br from-[#67e8f9] to-[#0284c7] text-[#082f49] shadow-sm'
+                : streakTier === 'gold'
+                ? 'bg-gradient-to-br from-[#fde047] to-[#d97706] text-[#1c1003] shadow-sm'
+                : streakTier === 'silver'
+                ? 'bg-gradient-to-br from-[#f1f5f9] to-[#94a3b8] text-[#0f172a] shadow-sm'
+                : streakTier === 'green'
+                ? darkMode
+                  ? 'bg-[#164a2d] text-[#bbf7d0] hover:bg-[#1c5e3a]'
+                  : 'bg-[#bbf7d0] text-[#14532d] hover:bg-[#86efac]'
+                : darkMode
+                ? 'bg-[#2e224b] text-[#e9d5ff] hover:bg-[#3c2d62]'
+                : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]';
+
+            const flameClass =
+              streakTier === 'plasma'
+                ? 'text-white fill-white'
+                : streakTier === 'diamond'
+                ? 'text-[#082f49] fill-[#ecfeff]'
+                : streakTier === 'gold'
+                ? 'text-[#78350f] fill-[#fef08a]'
+                : streakTier === 'silver'
+                ? 'text-[#334155] fill-[#f8fafc]'
+                : streakTier === 'green'
+                ? 'text-[#22c55e] fill-[#4ade80]'
+                : darkMode
+                ? 'text-[#a855f7] fill-[#a855f7]'
+                : 'text-[#16a34a] fill-[#22c55e]';
+
+            return (
+              <button
+                type="button"
+                onClick={onOpenStats}
+                aria-label={`مشاهده استریک و آمار: ${streak} روز${tierLabel ? ` (${tierLabel})` : ''}`}
+                className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-all active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${streakBtnStyle}`}
+                title={
+                  tierLabel
+                    ? `استریک ${tierLabel}: ${streak.toLocaleString('fa-IR')} روز (مشاهده تقویم و آمار)`
+                    : 'مشاهده استریک روزانه و آمار'
+                }
+              >
+                <Flame className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${flameClass}`} />
+                <span>{streak.toLocaleString('fa-IR')}</span>
+              </button>
+            );
+          })()}
 
           {/* Player Seeds Display Badge */}
           <button
             type="button"
             onClick={onOpenStats}
             aria-label={`بذرهای شما: ${points} بذر`}
-            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-colors text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${
+            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${
               darkMode
-                ? 'bg-[#143d25] border-[#22c55e] text-[#bbf7d0] hover:bg-[#16532f]'
-                : 'bg-[#f3e8ff] border-[#9333ea] text-[#581c87] hover:bg-[#e9d5ff]'
+                ? 'bg-[#16422b] text-[#bbf7d0] hover:bg-[#1c5638]'
+                : 'bg-[#ede9fe] text-[#581c87] hover:bg-[#ddd6fe]'
             }`}
             title={`بذرهای شما: ${points.toLocaleString('fa-IR')} بذر (هر برد بر اساس تعداد حدس بین ${calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا ${calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر جایزه دارد)`}
           >
@@ -212,14 +243,14 @@ export const Header: React.FC<HeaderProps> = ({
                 ? `راهنمای حرف سبز (${hintCost} بذر)`
                 : 'راهنمای حرف سبز (نیاز به ورود به حساب کاربری)'
             }
-            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-1.5 sm:px-2.5 rounded-xl border transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 ${
+            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 ${
               canUseHint
                 ? darkMode
-                  ? 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e] text-white'
-                  : 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea] text-white'
+                  ? 'bg-[#15803d] hover:bg-[#16a34a] text-white shadow-sm'
+                  : 'bg-[#7e22ce] hover:bg-[#6b21a8] text-white shadow-sm'
                 : darkMode
-                ? 'bg-[#291e40] border-[#433266] text-[#9b8bb8] hover:text-white'
-                : 'bg-[#dcfce7] border-[#86efac] text-[#166534]'
+                ? 'bg-[#2e224b] text-[#a799c4] hover:bg-[#3a2b5e] hover:text-white'
+                : 'bg-[#dff5e7] text-[#166534] hover:bg-[#c5ecd4]'
             }`}
             title={
               username
@@ -266,10 +297,10 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenContact}
             aria-label="تماس با ما"
-            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1 sm:px-2.5 rounded-xl border transition-colors active:scale-95 text-xs font-extrabold shrink-0 ${
+            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-xs font-extrabold shrink-0 ${
               darkMode
-                ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd] hover:bg-[#352752] hover:text-white'
-                : 'bg-[#dcfce7] border-[#86efac] text-[#166534] hover:bg-[#bbf7d0]'
+                ? 'bg-[#2e224b] text-[#d8c8ff] hover:bg-[#3c2d62] hover:text-white'
+                : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]'
             }`}
             title="تماس با ما و سفارش تبلیغات"
           >
@@ -293,10 +324,10 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenProfile}
             aria-label={username ? `حساب کاربری ${username}` : 'ورود به حساب کاربری'}
-            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1.5 sm:px-2.5 rounded-xl border active:scale-95 transition-colors text-xs font-extrabold shrink-0 ${
+            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1.5 sm:px-3 rounded-xl active:scale-95 transition-colors text-xs font-extrabold shrink-0 shadow-sm ${
               darkMode
-                ? 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea] text-white'
-                : 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e] text-white'
+                ? 'bg-[#7e22ce] hover:bg-[#9333ea] text-white'
+                : 'bg-[#15803d] hover:bg-[#166534] text-white'
             }`}
             title={username ? `حساب: ${username}` : 'ورود / ثبت‌نام'}
           >
@@ -311,10 +342,10 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile-Only Mode Length Segmented Bar (< md) */}
       <div className="md:hidden flex items-center gap-1.5 mt-1.5">
         <div
-          className={`grid grid-cols-3 gap-1 w-full rounded-xl p-1 border ${
+          className={`grid grid-cols-3 gap-1 w-full rounded-xl p-1 ${
             darkMode
-              ? 'bg-[#201733] border-[#362854]'
-              : 'bg-white border-[#86efac]'
+              ? 'bg-[#211836] shadow-sm shadow-black/20'
+              : 'bg-white shadow-sm shadow-emerald-950/6'
           }`}
         >
           {([4, 5, 6] as const).map((len) => {
@@ -336,8 +367,8 @@ export const Header: React.FC<HeaderProps> = ({
                   isSelected
                     ? theme.active
                     : darkMode
-                    ? 'text-[#c4b5fd] hover:text-white active:bg-[#291e40]'
-                    : 'text-[#166534] active:bg-[#dcfce7]'
+                    ? 'text-[#c4b5fd] hover:text-white hover:bg-[#2c2048] active:bg-[#342657]'
+                    : 'text-[#166534] hover:bg-[#e3f6ea] active:bg-[#ccefd9]'
                 }`}
               >
                 <span
@@ -356,8 +387,8 @@ export const Header: React.FC<HeaderProps> = ({
                       isSelected
                         ? 'bg-black/20 text-white'
                         : darkMode
-                        ? 'bg-[#291e40] text-[#86efac]'
-                        : 'bg-[#dcfce7] text-[#6b21a8]'
+                        ? 'bg-[#2e224b] text-[#86efac]'
+                        : 'bg-[#dff5e7] text-[#6b21a8]'
                     }`}
                   >
                     {guessCount.toLocaleString('fa-IR')}/۶
@@ -370,10 +401,10 @@ export const Header: React.FC<HeaderProps> = ({
 
         {hardMode && (
           <span
-            className={`sm:hidden shrink-0 text-[10px] font-extrabold px-2 py-2 rounded-xl border whitespace-nowrap ${
+            className={`sm:hidden shrink-0 text-[10px] font-extrabold px-2.5 py-2 rounded-xl whitespace-nowrap ${
               darkMode
-                ? 'text-[#86efac] bg-[#14532d] border-[#22c55e]'
-                : 'text-[#581c87] bg-[#f3e8ff] border-[#9333ea]'
+                ? 'text-[#bbf7d0] bg-[#164a2d]'
+                : 'text-[#581c87] bg-[#ede9fe]'
             }`}
           >
             سخت ⚡

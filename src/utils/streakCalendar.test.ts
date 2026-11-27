@@ -8,6 +8,8 @@ import {
   computeWinningStreakRuns,
   buildPersianCalendarMonth,
   shiftJalaliMonth,
+  getStreakTier,
+  STREAK_TIER_LIST,
 } from './streakCalendar';
 import { updateDailyStreak } from '../game/wordleLogic';
 import { PlayerStats } from '../types';
@@ -34,48 +36,56 @@ test('shiftJalaliMonth wraps across Jalali year boundaries', () => {
   assert.deepEqual(shiftJalaliMonth(1405, 12, 1), { year: 1406, month: 1 });
 });
 
-test('computeWinningStreakRuns classifies 1-2d normal, 3-6d hot, and 7+d fire streaks', () => {
-  const completed: Record<string, (4 | 5 | 6)[]> = {
-    // 1-day win
-    '2026-11-01': [5],
-    // 4-day hot streak
-    '2026-11-05': [4],
-    '2026-11-06': [5],
-    '2026-11-07': [4, 5],
-    '2026-11-08': [6],
-    // 8-day fire (long winning) streak
-    '2026-11-15': [5],
-    '2026-11-16': [5],
-    '2026-11-17': [5],
-    '2026-11-18': [5],
-    '2026-11-19': [5],
-    '2026-11-20': [5],
-    '2026-11-21': [5],
-    '2026-11-22': [4, 5, 6],
-  };
-
-  const { dateMeta, longestWinningStreak, totalWonDays } = computeWinningStreakRuns(completed);
-  assert.equal(longestWinningStreak, 8);
-  assert.equal(totalWonDays, 13);
-
-  assert.equal(dateMeta['2026-11-01'].tier, 'normal');
-  assert.equal(dateMeta['2026-11-01'].position, 'single');
-
-  assert.equal(dateMeta['2026-11-05'].tier, 'hot');
-  assert.equal(dateMeta['2026-11-05'].position, 'start');
-  assert.equal(dateMeta['2026-11-06'].position, 'middle');
-  assert.equal(dateMeta['2026-11-08'].position, 'end');
-
-  assert.equal(dateMeta['2026-11-15'].tier, 'fire');
-  assert.equal(dateMeta['2026-11-15'].streakLength, 8);
-  assert.equal(dateMeta['2026-11-22'].tier, 'fire');
-  assert.equal(dateMeta['2026-11-22'].position, 'end');
+test('getStreakTier maps lengths to green, silver, gold, diamond, and plasma', () => {
+  assert.deepEqual(
+    STREAK_TIER_LIST.map((t) => t.tier),
+    ['green', 'silver', 'gold', 'diamond', 'plasma']
+  );
+  assert.equal(getStreakTier(0), 'none');
+  assert.equal(getStreakTier(1), 'green');
+  assert.equal(getStreakTier(2), 'green');
+  assert.equal(getStreakTier(3), 'silver');
+  assert.equal(getStreakTier(6), 'silver');
+  assert.equal(getStreakTier(7), 'gold');
+  assert.equal(getStreakTier(13), 'gold');
+  assert.equal(getStreakTier(14), 'diamond');
+  assert.equal(getStreakTier(29), 'diamond');
+  assert.equal(getStreakTier(30), 'plasma');
+  assert.equal(getStreakTier(100), 'plasma');
 });
 
-test('buildPersianCalendarMonth generates full 30-day Azar month and connects streak runs across month boundary', () => {
-  // 8-day winning streak ending on 2026-11-27 (spans Aban -> Azar 1405)
+test('computeWinningStreakRuns classifies green, silver, gold, diamond, and plasma runs', () => {
   const completed: Record<string, (4 | 5 | 6)[]> = {};
-  for (let i = 0; i < 8; i++) {
+  // 2-day green streak
+  completed['2026-08-01'] = [5];
+  completed['2026-08-02'] = [5];
+  // 4-day silver streak
+  for (let i = 0; i < 4; i++) completed[addDaysToDateKey('2026-08-10', i)] = [4];
+  // 8-day gold streak
+  for (let i = 0; i < 8; i++) completed[addDaysToDateKey('2026-09-01', i)] = [5];
+  // 16-day diamond streak
+  for (let i = 0; i < 16; i++) completed[addDaysToDateKey('2026-10-01', i)] = [6];
+  // 32-day plasma streak
+  for (let i = 0; i < 32; i++) completed[addDaysToDateKey('2026-10-27', i)] = [4, 5, 6];
+
+  const { dateMeta, longestWinningStreak, totalWonDays } = computeWinningStreakRuns(completed);
+  assert.equal(longestWinningStreak, 32);
+  assert.equal(totalWonDays, 62);
+
+  assert.equal(dateMeta['2026-08-01'].tier, 'green');
+  assert.equal(dateMeta['2026-08-10'].tier, 'silver');
+  assert.equal(dateMeta['2026-08-13'].position, 'end');
+  assert.equal(dateMeta['2026-09-01'].tier, 'gold');
+  assert.equal(dateMeta['2026-10-01'].tier, 'diamond');
+  assert.equal(dateMeta['2026-10-27'].tier, 'plasma');
+  assert.equal(dateMeta['2026-11-27'].tier, 'plasma');
+  assert.equal(dateMeta['2026-11-27'].position, 'end');
+});
+
+test('buildPersianCalendarMonth generates full 30-day Azar month and preserves cross-month gold/diamond/plasma tiers', () => {
+  // 15-day diamond streak ending on 2026-11-27 (spans Aban -> Azar 1405)
+  const completed: Record<string, (4 | 5 | 6)[]> = {};
+  for (let i = 0; i < 15; i++) {
     completed[addDaysToDateKey('2026-11-27', -i)] = [5];
   }
 
@@ -93,8 +103,8 @@ test('buildPersianCalendarMonth generates full 30-day Azar month and connects st
   assert.ok(todayCell);
   assert.equal(todayCell.isToday, true);
   assert.equal(todayCell.isWon, true);
-  assert.equal(todayCell.streakTier, 'fire');
-  assert.equal(todayCell.streakLength, 8);
+  assert.equal(todayCell.streakTier, 'diamond');
+  assert.equal(todayCell.streakLength, 15);
 });
 
 test('getEffectiveCompletedDates backfills legacy streak when completedDates is absent', () => {

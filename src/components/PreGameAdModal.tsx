@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Play, Sparkles, X, ShieldCheck } from 'lucide-react';
+import { Play, Sparkles } from 'lucide-react';
 import { PRE_GAME_AD } from '../config/advertisements';
 
 interface PreGameAdModalProps {
@@ -40,19 +40,19 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
       role="dialog"
       aria-modal="true"
       aria-label="تبلیغات پیش از بازی کلمباز"
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] animate-fade-in"
     >
       <div
-        className={`relative w-full max-w-md rounded-2xl border-2 p-6 shadow-2xl ${
+        className={`relative w-full max-w-md rounded-2xl p-6 shadow-2xl ${
           darkMode
-            ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
-            : 'bg-white border-[#86efac] text-[#14532d]'
+            ? 'bg-[#211836] text-[#f5f3ff] shadow-black/50'
+            : 'bg-white text-[#14532d] shadow-emerald-950/15'
         }`}
       >
         {/* Top bar with sponsor badge */}
         <div
           className={`flex items-center justify-between pb-3 border-b ${
-            darkMode ? 'border-[#4c3773]/60' : 'border-[#bbf7d0]'
+            darkMode ? 'border-white/8' : 'border-emerald-950/8'
           }`}
         >
           <div className="flex items-center gap-2">
@@ -75,19 +75,15 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
         </div>
 
         {/* Ad Body */}
-        <div className="my-5 space-y-4">
+        <div className="my-5 space-y-3.5">
           <div
-            className={`rounded-xl overflow-hidden border-2 p-4 text-center ${
-              darkMode
-                ? 'bg-[#26193d]/80 border-[#48967c]/50'
-                : 'bg-[#f0fdf4] border-[#86efac]'
+            className={`rounded-xl overflow-hidden p-4 text-center ${
+              darkMode ? 'bg-[#2a1f45]' : 'bg-[#eefaf2]'
             }`}
           >
             <div
-              className={`w-16 h-16 mx-auto mb-3 rounded-2xl border-2 flex items-center justify-center text-3xl shadow-inner ${
-                darkMode
-                  ? 'bg-[#173830]/80 border-[#6ee7b7]/50'
-                  : 'bg-[#dcfce7] border-[#22c55e]'
+              className={`w-16 h-16 mx-auto mb-3 rounded-2xl flex items-center justify-center text-3xl ${
+                darkMode ? 'bg-[#173b2d]' : 'bg-[#dcfce7]'
               }`}
             >
               {PRE_GAME_AD.icon || '🥗'}
@@ -109,10 +105,10 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
 
             {PRE_GAME_AD.discountCode && (
               <div
-                className={`mt-3 flex items-center justify-center gap-2 text-[11px] font-bold py-1.5 px-3 rounded-lg border ${
+                className={`mt-3 flex items-center justify-center gap-2 text-[11px] font-bold py-2 px-3 rounded-xl ${
                   darkMode
-                    ? 'text-[#d1fae5] bg-[#173830]/80 border-[#428f76]'
-                    : 'text-[#14532d] bg-[#dcfce7] border-[#22c55e]'
+                    ? 'text-[#d1fae5] bg-[#163d2d]'
+                    : 'text-[#14532d] bg-[#dcfce7]'
                 }`}
               >
                 <Sparkles
@@ -131,10 +127,8 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
           </div>
 
           <div
-            className={`flex items-center gap-3 p-3 rounded-xl border ${
-              darkMode
-                ? 'bg-[#18332c]/65 border-[#488f78]/55'
-                : 'bg-[#dcfce7] border-[#86efac]'
+            className={`flex items-center gap-3 p-3 rounded-xl ${
+              darkMode ? 'bg-[#17382b]' : 'bg-[#dcfce7]'
             }`}
           >
             <div className="text-2xl">🥦</div>
@@ -165,17 +159,17 @@ export const PreGameAdModal: React.FC<PreGameAdModalProps> = ({
         </div>
 
         {/* Action Button */}
-        <div className="pt-2">
+        <div className="pt-1">
           <button
             onClick={onProceed}
-            className={`w-full py-3 px-4 rounded-xl font-extrabold flex items-center justify-center gap-2 transition-colors text-sm sm:text-base border-2 ${
+            className={`w-full py-3 px-4 rounded-xl font-extrabold flex items-center justify-center gap-2 transition-colors active:scale-98 text-sm sm:text-base shadow-sm ${
               secondsLeft > 0
                 ? darkMode
-                  ? 'bg-[#291e40] text-[#c4b5fd] border-[#433266] cursor-pointer hover:bg-[#352752]'
-                  : 'bg-[#dcfce7] text-[#14532d] border-[#86efac] cursor-pointer hover:bg-[#bbf7d0]'
+                  ? 'bg-[#2e224b] text-[#d8c8ff] cursor-pointer hover:bg-[#3c2d62]'
+                  : 'bg-[#dff5e7] text-[#14532d] cursor-pointer hover:bg-[#c5ecd4]'
                 : darkMode
-                ? 'bg-[#15803d] hover:bg-[#16a34a] text-white border-[#22c55e]'
-                : 'bg-[#6b21a8] hover:bg-[#7e22ce] text-white border-[#9333ea]'
+                ? 'bg-[#16a34a] hover:bg-[#15803d] text-white'
+                : 'bg-[#7e22ce] hover:bg-[#6b21a8] text-white'
             }`}
           >
             <Play className="w-4 h-4 fill-current" />

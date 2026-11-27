@@ -55,20 +55,20 @@ const LENGTH_PULSE_THEMES: Record<
   4: {
     border: '#4ade80',
     glow: 'rgba(34, 197, 94, 0.85)',
-    ring: 'rgba(74, 222, 128, 0.4)',
-    pulseRingClass: 'ring-2 ring-[#4ade80] border-[#4ade80]',
+    ring: 'rgba(74, 222, 128, 0.42)',
+    pulseRingClass: 'ring-2 ring-[#4ade80]',
   },
   5: {
     border: '#c084fc',
     glow: 'rgba(168, 85, 247, 0.85)',
-    ring: 'rgba(192, 132, 252, 0.42)',
-    pulseRingClass: 'ring-2 ring-[#c084fc] border-[#c084fc]',
+    ring: 'rgba(192, 132, 252, 0.45)',
+    pulseRingClass: 'ring-2 ring-[#c084fc]',
   },
   6: {
     border: '#fbbf24',
     glow: 'rgba(245, 158, 11, 0.85)',
-    ring: 'rgba(251, 191, 36, 0.42)',
-    pulseRingClass: 'ring-2 ring-[#fbbf24] border-[#fbbf24]',
+    ring: 'rgba(251, 191, 36, 0.45)',
+    pulseRingClass: 'ring-2 ring-[#fbbf24]',
   },
 };
 
@@ -179,25 +179,25 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
   }
 
   const defaultKeyStyle = darkMode
-    ? 'bg-[#2a1f42] text-[#f5f3ff] hover:bg-[#362854] active:bg-[#433266] border-[#433266]'
-    : 'bg-[#dcfce7] text-[#14532d] hover:bg-[#bbf7d0] active:bg-[#86efac] border-[#86efac] font-extrabold';
+    ? 'bg-[#322552] text-[#f5f3ff] hover:bg-[#403069] active:bg-[#4d3a7d] shadow-[0_2px_0_rgba(0,0,0,0.35)]'
+    : 'bg-[#d0f1dc] text-[#14532d] hover:bg-[#b5e7c8] active:bg-[#99dcb3] font-extrabold shadow-[0_2px_0_rgba(20,83,45,0.14)]';
 
   const getKeyColor = (char: string) => {
     const status = letterStatuses[char];
     if (status === 'correct') {
       return highContrast
-        ? 'bg-[#16a34a] text-white border-[#22c55e] font-extrabold'
-        : 'bg-[#15803d] text-white border-[#16a34a] font-extrabold';
+        ? 'bg-[#16a34a] text-white font-extrabold shadow-[0_2px_0_rgba(0,0,0,0.22)]'
+        : 'bg-[#15803d] text-white font-extrabold shadow-[0_2px_0_rgba(0,0,0,0.22)]';
     }
     if (status === 'present') {
       return highContrast
-        ? 'bg-[#f97316] text-white border-[#fb923c] font-extrabold'
-        : 'bg-[#ca8a04] text-white border-[#eab308] font-extrabold';
+        ? 'bg-[#f97316] text-white font-extrabold shadow-[0_2px_0_rgba(0,0,0,0.22)]'
+        : 'bg-[#ca8a04] text-white font-extrabold shadow-[0_2px_0_rgba(0,0,0,0.22)]';
     }
     if (status === 'absent') {
       return darkMode
-        ? 'bg-[#1b1429] text-[#7c6d99] border-[#2e2345]'
-        : 'bg-[#4b6355] text-white border-[#3a4f43]';
+        ? 'bg-[#1c152e] text-[#6d5f8a]'
+        : 'bg-[#566d60] text-white/95';
     }
     return defaultKeyStyle;
   };
@@ -277,7 +277,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
           }}
           aria-label={hasAlts ? `حرف ${char} (${alts.join('، ')})` : `حرف ${char}`}
           title={hasAlts ? `نگه دارید یا کلیک راست برای: ${alts.join(' ، ')}` : undefined}
-          className={`w-full h-11 sm:h-12 rounded-lg sm:rounded-xl border text-sm sm:text-base font-bold flex flex-col items-center justify-center transition-colors active:scale-95 relative touch-manipulation select-none ${getKeyColor(
+          className={`w-full h-11 sm:h-12 rounded-lg sm:rounded-xl text-sm sm:text-base font-bold flex flex-col items-center justify-center transition-colors active:scale-95 relative touch-manipulation select-none ${getKeyColor(
             char
           )} ${isPulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
@@ -288,7 +288,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
                 letterStatuses[char]
                   ? 'text-white/90'
                   : darkMode
-                  ? 'text-[#a78bfa]'
+                  ? 'text-[#b79cff]'
                   : 'text-[#15803d]'
               }`}
             >
@@ -300,10 +300,10 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
         {/* Long-press / right-click alternates popover */}
         {activePopoverKey === char && hasAlts && (
           <div
-            className={`absolute -top-13 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1 rounded-xl border-2 shadow-lg ${
+            className={`absolute -top-13 left-1/2 -translate-x-1/2 z-40 flex items-center gap-1 p-1.5 rounded-xl shadow-xl ${
               darkMode
-                ? 'bg-[#201733] border-[#22c55e]'
-                : 'bg-white border-[#9333ea]'
+                ? 'bg-[#211836] shadow-black/50'
+                : 'bg-white shadow-emerald-950/15'
             }`}
           >
             {alts.map((alt) => (
@@ -318,7 +318,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
                 className={`w-9 h-9 rounded-lg font-extrabold text-sm flex items-center justify-center transition-colors text-white ${
                   darkMode
                     ? 'bg-[#15803d] hover:bg-[#16a34a]'
-                    : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+                    : 'bg-[#7e22ce] hover:bg-[#6b21a8]'
                 }`}
               >
                 {alt}
@@ -341,20 +341,20 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
       aria-label="صفحه‌کلید فارسی کلمباز"
       data-theme-length={wordLength}
       style={pulseCssVars}
-      className="w-full max-w-xl mx-auto px-1 sm:px-2 pt-0.5 pb-1.5 sm:pb-2 flex flex-col gap-1 sm:gap-1.5 select-none shrink-0"
+      className="w-full max-w-xl mx-auto px-1 sm:px-2 pt-0.5 pb-1.5 sm:pb-2 flex flex-col gap-1.5 select-none shrink-0"
     >
       {/* Row 1 (12 keys) */}
-      <div className="flex items-center justify-center gap-[3px] sm:gap-1.5">
+      <div className="flex items-center justify-center gap-[4px] sm:gap-1.5">
         {ROW_1.map((char) => renderKey(char, 'max-w-[44px]'))}
       </div>
 
       {/* Row 2 (11 keys) */}
-      <div className="flex items-center justify-center gap-[3px] sm:gap-1.5 px-1.5 sm:px-3">
+      <div className="flex items-center justify-center gap-[4px] sm:gap-1.5 px-1.5 sm:px-3">
         {ROW_2.map((char) => renderKey(char, 'max-w-[46px]'))}
       </div>
 
       {/* Row 3 with Enter and Backspace */}
-      <div className="flex items-center justify-center gap-[3px] sm:gap-1.5">
+      <div className="flex items-center justify-center gap-[4px] sm:gap-1.5">
         {/* Enter key (Green in Night Mode, Purple in Day Mode) */}
         <button
           type="button"
@@ -363,10 +363,10 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
           data-pulsing={isEnterPulsing ? 'true' : undefined}
           onClick={handleEnterClick}
           aria-label="ثبت حدس کلمه"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative ${
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative shadow-[0_2px_0_rgba(0,0,0,0.28)] ${
             darkMode
-              ? 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
-              : 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
+              ? 'bg-[#15803d] hover:bg-[#16a34a]'
+              : 'bg-[#7e22ce] hover:bg-[#6b21a8]'
           } ${isEnterPulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
           <span>ثبت</span>
@@ -383,10 +383,10 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
           data-pulsing={isDeletePulsing ? 'true' : undefined}
           onClick={handleDeleteClick}
           aria-label="حذف حرف آخر"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative ${
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative shadow-[0_2px_0_rgba(0,0,0,0.28)] ${
             darkMode
-              ? 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
-              : 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
+              ? 'bg-[#7e22ce] hover:bg-[#9333ea]'
+              : 'bg-[#15803d] hover:bg-[#166534]'
           } ${isDeletePulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
           <Delete className="w-4 h-4 shrink-0" />

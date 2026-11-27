@@ -38,6 +38,60 @@ const SLIDE_TABS = [
   { index: 2 as const, label: '۳. اعلان روزانه' },
 ];
 
+type MockTileStatus = 'correct' | 'present' | 'absent';
+
+interface MockSolvedStep {
+  stepNum: number;
+  word: string;
+  tiles: { letter: string; status: MockTileStatus }[];
+  badge: string;
+  explanation: string;
+}
+
+// Verified step-by-step solved walkthrough for the 4-letter target word «گلاب»
+const MOCK_SOLVED_TARGET = 'گلاب';
+const MOCK_SOLVED_STEPS: MockSolvedStep[] = [
+  {
+    stepNum: 1,
+    word: 'بالش',
+    badge: 'حدس ۱',
+    tiles: [
+      { letter: 'ب', status: 'present' },
+      { letter: 'ا', status: 'present' },
+      { letter: 'ل', status: 'present' },
+      { letter: 'ش', status: 'absent' },
+    ],
+    explanation:
+      '«ب»، «ا» و «ل» نارنجی شدند؛ یعنی در «گلاب» هستند ولی جایشان اشتباه است. «ش» تیره شد پس اصلاً در کلمه نیست.',
+  },
+  {
+    stepNum: 2,
+    word: 'لباس',
+    badge: 'حدس ۲',
+    tiles: [
+      { letter: 'ل', status: 'present' },
+      { letter: 'ب', status: 'present' },
+      { letter: 'ا', status: 'correct' },
+      { letter: 'س', status: 'absent' },
+    ],
+    explanation:
+      '«ا» سبز شد (خانه سوم قطعی شد!). «ل» و «ب» هنوز نارنجی‌اند، پس باید به خانه‌های ۲ و ۴ بروند (_ ل ا ب). «س» هم حذف می‌شود.',
+  },
+  {
+    stepNum: 3,
+    word: 'گلاب',
+    badge: 'حدس ۳ ✓',
+    tiles: [
+      { letter: 'گ', status: 'correct' },
+      { letter: 'ل', status: 'correct' },
+      { letter: 'ا', status: 'correct' },
+      { letter: 'ب', status: 'correct' },
+    ],
+    explanation:
+      'با گذاشتن «گ» در خانه اول و چیدن «ل»، «ا»، «ب» در جای درستشان، هر ۴ خانه سبز شد و معمای «گلاب» حل شد! 🎉',
+  },
+];
+
 export const HelpModal: React.FC<HelpModalProps> = ({
   isOpen,
   onClose,
@@ -53,39 +107,37 @@ export const HelpModal: React.FC<HelpModalProps> = ({
   onSendTestNotification,
 }) => {
   const [activeSlide, setActiveSlide] = useState<0 | 1 | 2>(initialSlide);
+  const [focusedStep, setFocusedStep] = useState<number>(3);
   const touchStartX = useRef<number | null>(null);
 
   useEffect(() => {
     if (isOpen) {
       setActiveSlide(initialSlide);
+      setFocusedStep(3);
     }
   }, [isOpen, initialSlide]);
 
   if (!isOpen) return null;
 
   const absentTile = darkMode
-    ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd]'
-    : 'bg-[#4b6355] border-[#3a4f43] text-white';
-
-  const neutralTile = darkMode
-    ? 'bg-[#201733] border-[#3d2e5c] text-[#f5f3ff]'
-    : 'bg-white border-[#86efac] text-[#14532d]';
+    ? 'bg-[#1c152e] text-[#9b8bb8]'
+    : 'bg-[#566d60] text-white';
 
   const stepCardClass = darkMode
-    ? 'bg-[#161022] border-[#362854] text-[#e9d5ff]'
-    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]';
+    ? 'bg-[#171126] text-[#e9d5ff]'
+    : 'bg-[#eefaf2] text-[#14532d]';
 
   const stepBadgeClass = darkMode
     ? 'bg-[#15803d] text-white'
-    : 'bg-[#6b21a8] text-white';
+    : 'bg-[#7e22ce] text-white';
 
   const primaryBtnClass = darkMode
-    ? 'bg-[#15803d] hover:bg-[#16a34a] text-white'
-    : 'bg-[#6b21a8] hover:bg-[#7e22ce] text-white';
+    ? 'bg-[#16a34a] hover:bg-[#15803d] text-white shadow-sm'
+    : 'bg-[#7e22ce] hover:bg-[#6b21a8] text-white shadow-sm';
 
   const secondaryBtnClass = darkMode
-    ? 'bg-[#291e40] border-[#433266] text-[#e9d5ff] hover:bg-[#352752]'
-    : 'bg-[#dcfce7] border-[#86efac] text-[#14532d] hover:bg-[#bbf7d0]';
+    ? 'bg-[#2e224b] text-[#e9d5ff] hover:bg-[#3c2d62]'
+    : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]';
 
   const isNotifActive = notificationPermission === 'granted' && notificationsEnabled;
 
@@ -154,24 +206,24 @@ export const HelpModal: React.FC<HelpModalProps> = ({
       aria-modal="true"
       aria-label="راهنمای بازی کلمباز"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/75 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-3 sm:p-4 bg-black/70 backdrop-blur-[2px] animate-fade-in"
     >
       <div
         dir="ltr"
         onClick={(e) => e.stopPropagation()}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
-        className={`relative w-full max-w-md rounded-2xl border-2 p-4 sm:p-6 shadow-2xl overflow-y-auto max-h-[92vh] ${
+        className={`relative w-full max-w-md rounded-2xl p-4 sm:p-6 shadow-2xl overflow-y-auto max-h-[92vh] ${
           darkMode
-            ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
-            : 'bg-white border-[#86efac] text-[#14532d]'
+            ? 'bg-[#211836] text-[#f5f3ff] shadow-black/50'
+            : 'bg-white text-[#14532d] shadow-emerald-950/15'
         }`}
       >
         <div dir="rtl">
           {/* Header */}
           <div
             className={`flex items-center justify-between pb-3 border-b mb-3 ${
-              darkMode ? 'border-[#362854]' : 'border-[#bbf7d0]'
+              darkMode ? 'border-white/8' : 'border-emerald-950/8'
             }`}
           >
             <div className="flex items-center gap-2.5 min-w-0">
@@ -193,10 +245,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
               type="button"
               onClick={onClose}
               aria-label="بستن راهنما"
-              className={`p-1.5 rounded-lg transition-colors shrink-0 ${
+              className={`p-1.5 rounded-xl transition-colors shrink-0 ${
                 darkMode
-                  ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
-                  : 'text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
+                  ? 'bg-[#2e224b] text-[#d8b4fe] hover:text-white hover:bg-[#3c2d62]'
+                  : 'bg-[#eefaf2] text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
               }`}
             >
               <X className="w-5 h-5" />
@@ -207,10 +259,8 @@ export const HelpModal: React.FC<HelpModalProps> = ({
           <div
             role="tablist"
             aria-label="صفحات راهنما"
-            className={`grid grid-cols-3 gap-1 p-1 rounded-xl border mb-4 ${
-              darkMode
-                ? 'bg-[#161022] border-[#362854]'
-                : 'bg-[#dcfce7] border-[#86efac]'
+            className={`grid grid-cols-3 gap-1 p-1 rounded-xl mb-4 ${
+              darkMode ? 'bg-[#150f24]' : 'bg-[#e3f6ea]'
             }`}
           >
             {SLIDE_TABS.map((tab) => {
@@ -222,14 +272,14 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   role="tab"
                   aria-selected={isSelected}
                   onClick={() => setActiveSlide(tab.index)}
-                  className={`py-1.5 px-1.5 rounded-lg text-[11px] font-extrabold whitespace-nowrap ${
+                  className={`py-1.5 px-1.5 rounded-lg text-[11px] font-extrabold whitespace-nowrap transition-colors ${
                     isSelected
                       ? darkMode
-                        ? 'bg-[#15803d] text-white'
-                        : 'bg-[#6b21a8] text-white'
+                        ? 'bg-[#15803d] text-white shadow-xs'
+                        : 'bg-[#7e22ce] text-white shadow-xs'
                       : darkMode
-                      ? 'text-[#c4b5fd] hover:text-white'
-                      : 'text-[#166534] hover:text-[#14532d]'
+                      ? 'text-[#c4b5fd] hover:text-white hover:bg-[#2a1f44]'
+                      : 'text-[#166534] hover:bg-[#ccefd9]'
                   }`}
                 >
                   {tab.label}
@@ -238,121 +288,205 @@ export const HelpModal: React.FC<HelpModalProps> = ({
             })}
           </div>
 
-          {/* SLIDE 1: Game Guide */}
+          {/* SLIDE 1: Game Guide — Mock Grid & Step-by-Step Solved Example («گلاب») */}
           {activeSlide === 0 && (
             <div className="space-y-3 text-xs sm:text-sm">
+              {/* Concise Gameplay Overview */}
               <div
-                className={`p-3 rounded-xl border font-semibold leading-relaxed ${stepCardClass}`}
+                className={`p-3 rounded-xl font-semibold leading-relaxed ${stepCardClass}`}
               >
-                یک کلمه فارسی (۴، ۵ یا ۶ حرفی) بنویسید و دکمه{' '}
+                در <strong>کلمباز</strong> باید کلمه پنهان امروز (۴، ۵ یا ۶ حرفی) را در{' '}
+                <strong className={darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}>
+                  ۶ تلاش
+                </strong>{' '}
+                حدس بزنید. بعد از هر حدس و زدن{' '}
                 <strong className={darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}>
                   ثبت
-                </strong>{' '}
-                را بزنید. رنگ خانه‌ها به شما می‌گوید چقدر به جواب نزدیکید:
+                </strong>
+                ، رنگ هر خانه وضعیت آن حرف را نشان می‌دهد:
               </div>
 
-              {/* Visual Color Examples */}
-              <div className="space-y-2.5">
-                {/* Green = Right letter, right spot */}
+              {/* Compact 3-Color Logic Key */}
+              <div className="grid grid-cols-3 gap-1.5 text-[10px] sm:text-[11px] font-extrabold text-center">
                 <div
-                  className={`p-3 rounded-xl border flex flex-col gap-2 ${
+                  className={`py-2 px-1.5 rounded-xl flex flex-col items-center gap-1 ${
                     darkMode
-                      ? 'bg-[#143d25] border-[#22c55e]'
-                      : 'bg-[#dcfce7] border-[#22c55e]'
+                      ? 'bg-[#16422b] text-[#dcfce7]'
+                      : 'bg-[#dcfce7] text-[#14532d]'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <div className="w-8 h-8 rounded-lg bg-[#16a34a] border-2 border-[#22c55e] text-white flex items-center justify-center font-black text-base">
-                      ب
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ه
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ا
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ر
-                    </div>
-                  </div>
-                  <p
-                    className={`text-xs font-bold ${
-                      darkMode ? 'text-[#dcfce7]' : 'text-[#14532d]'
-                    }`}
-                  >
-                    <span className="font-black">سبز:</span> حرف «ب» در کلمه هست و{' '}
-                    <span className="underline">جایش دقیقاً درست است</span>.
-                  </p>
+                  <span className="inline-block w-3 h-3 rounded-xs bg-[#16a34a]" />
+                  <span>سبز: حرف و جای درست</span>
                 </div>
-
-                {/* Orange = Right letter, wrong spot */}
                 <div
-                  className={`p-3 rounded-xl border flex flex-col gap-2 ${
+                  className={`py-2 px-1.5 rounded-xl flex flex-col items-center gap-1 ${
                     darkMode
-                      ? 'bg-[#3b2210] border-[#f97316]'
-                      : 'bg-[#fef3c7] border-[#f59e0b]'
+                      ? 'bg-[#3d2312] text-[#ffedd5]'
+                      : 'bg-[#fef3c7] text-[#78350f]'
                   }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      د
-                    </div>
-                    <div className="w-8 h-8 rounded-lg bg-[#f97316] border-2 border-[#fb923c] text-white flex items-center justify-center font-black text-base">
-                      ر
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      خ
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ت
-                    </div>
-                  </div>
-                  <p
-                    className={`text-xs font-bold ${
-                      darkMode ? 'text-[#ffedd5]' : 'text-[#78350f]'
+                  <span className="inline-block w-3 h-3 rounded-xs bg-[#f97316]" />
+                  <span>نارنجی: هست، جای غلط</span>
+                </div>
+                <div
+                  className={`py-2 px-1.5 rounded-xl flex flex-col items-center gap-1 ${stepCardClass}`}
+                >
+                  <span
+                    className={`inline-block w-3 h-3 rounded-xs ${absentTile}`}
+                  />
+                  <span>تیره: در کلمه نیست</span>
+                </div>
+              </div>
+
+              {/* Authentic Stacked Mock Board + Step-by-Step Explanations */}
+              <div
+                className={`p-3.5 rounded-2xl space-y-3 ${
+                  darkMode ? 'bg-[#171126]' : 'bg-[#eefaf2]'
+                }`}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-xs font-black">
+                    مثال یک جدول حل‌شده (قدم‌به‌قدم)
+                  </span>
+                  <span
+                    className={`px-2 py-0.5 rounded-lg text-[10px] font-extrabold ${
+                      darkMode
+                        ? 'bg-[#16422b] text-[#86efac]'
+                        : 'bg-[#dcfce7] text-[#15803d]'
                     }`}
                   >
-                    <span className="font-black">نارنجی:</span> حرف «ر» در کلمه هست، اما{' '}
-                    <span className="underline">در خانه دیگری</span> قرار دارد.
-                  </p>
+                    جواب مخفی: «{MOCK_SOLVED_TARGET}»
+                  </span>
                 </div>
 
-                {/* Dark = Not in word */}
+                {/* Stacked Mock Wordle Grid (3 Guess Rows) */}
                 <div
-                  className={`p-3 rounded-xl border flex flex-col gap-2 ${stepCardClass}`}
+                  role="group"
+                  aria-label={`جدول نمونه حل کلمه ${MOCK_SOLVED_TARGET}`}
+                  className={`p-2 rounded-xl space-y-1.5 ${
+                    darkMode ? 'bg-[#211836]' : 'bg-white'
+                  }`}
                 >
-                  <div className="flex items-center gap-1.5">
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      س
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-black text-base ${absentTile}`}>
-                      ی
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ا
-                    </div>
-                    <div className={`w-8 h-8 rounded-lg border-2 flex items-center justify-center font-bold text-base ${neutralTile}`}>
-                      ه
-                    </div>
-                  </div>
-                  <p
-                    className={`text-xs font-bold ${
-                      darkMode ? 'text-[#c4b5fd]' : 'text-[#14532d]'
-                    }`}
-                  >
-                    <span className="font-black">تیره:</span> حرف «ی»{' '}
-                    <span className="underline">اصلاً در کلمه امروز نیست</span>.
-                  </p>
+                  {MOCK_SOLVED_STEPS.map((step) => {
+                    const isFocused = focusedStep === step.stepNum;
+                    const isSolvedRow = step.stepNum === 3;
+                    return (
+                      <button
+                        key={step.stepNum}
+                        type="button"
+                        onClick={() => setFocusedStep(step.stepNum)}
+                        className={`w-full flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-xl transition-colors text-right ${
+                          isFocused
+                            ? isSolvedRow
+                              ? darkMode
+                                ? 'bg-[#16422b]'
+                                : 'bg-[#dcfce7]'
+                              : darkMode
+                              ? 'bg-[#312352]'
+                              : 'bg-[#ede9fe]'
+                            : darkMode
+                            ? 'hover:bg-[#2a1f44]'
+                            : 'hover:bg-[#f2fbf5]'
+                        }`}
+                      >
+                        <div className="flex items-center gap-1.5 min-w-0">
+                          <span
+                            className={`text-[10px] font-extrabold px-1.5 py-0.5 rounded-md shrink-0 ${
+                              isSolvedRow
+                                ? 'bg-[#15803d] text-white'
+                                : isFocused
+                                ? 'bg-[#7e22ce] text-white'
+                                : darkMode
+                                ? 'bg-[#2e224b] text-[#c4b5fd]'
+                                : 'bg-[#dff5e7] text-[#166534]'
+                            }`}
+                          >
+                            {step.badge}
+                          </span>
+                          <span
+                            className={`text-xs font-extrabold truncate ${
+                              darkMode ? 'text-[#f5f3ff]' : 'text-[#14532d]'
+                            }`}
+                          >
+                            «{step.word}»
+                          </span>
+                        </div>
+
+                        <div className="grid grid-cols-4 gap-1.5 shrink-0">
+                          {step.tiles.map((tile, tIdx) => {
+                            const tileClass =
+                              tile.status === 'correct'
+                                ? 'bg-[#16a34a] text-white'
+                                : tile.status === 'present'
+                                ? 'bg-[#f97316] text-white'
+                                : absentTile;
+                            return (
+                              <div
+                                key={`${step.stepNum}-${tIdx}`}
+                                className={`w-8 h-8 rounded-lg flex items-center justify-center font-black text-sm select-none ${tileClass}`}
+                              >
+                                {tile.letter}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                {/* Step-by-Step Color Logic Breakdown */}
+                <div className="space-y-1.5">
+                  {MOCK_SOLVED_STEPS.map((step) => {
+                    const isFocused = focusedStep === step.stepNum;
+                    const isSolvedRow = step.stepNum === 3;
+                    return (
+                      <button
+                        key={`explain-${step.stepNum}`}
+                        type="button"
+                        onClick={() => setFocusedStep(step.stepNum)}
+                        className={`w-full text-right p-2.5 rounded-xl transition-colors flex items-start gap-2 ${
+                          isFocused
+                            ? isSolvedRow
+                              ? darkMode
+                                ? 'bg-[#16422b] text-[#dcfce7]'
+                                : 'bg-[#dcfce7] text-[#14532d]'
+                              : darkMode
+                              ? 'bg-[#312352] text-[#f5f3ff]'
+                              : 'bg-[#ede9fe] text-[#3b0764]'
+                            : darkMode
+                            ? 'bg-[#211836] text-[#d8c7f0] hover:bg-[#2a1f44]'
+                            : 'bg-white text-[#166534] hover:bg-[#f2fbf5]'
+                        }`}
+                      >
+                        <span
+                          className={`w-5 h-5 rounded-md text-[10px] font-black flex items-center justify-center shrink-0 mt-0.5 ${
+                            isSolvedRow
+                              ? 'bg-[#15803d] text-white'
+                              : darkMode
+                              ? 'bg-[#7e22ce] text-white'
+                              : 'bg-[#15803d] text-white'
+                          }`}
+                        >
+                          {step.stepNum.toLocaleString('fa-IR')}
+                        </span>
+                        <span className="text-[11px] font-semibold leading-relaxed">
+                          <strong className="font-extrabold">«{step.word}»:</strong>{' '}
+                          {step.explanation}
+                        </span>
+                      </button>
+                    );
+                  })}
                 </div>
               </div>
 
               {/* Quick Tips */}
-              <div className="grid grid-cols-1 gap-2 pt-1">
+              <div className="grid grid-cols-1 gap-2 pt-0.5">
                 <div
-                  className={`flex items-start gap-2 p-2.5 rounded-xl border text-xs ${
+                  className={`flex items-start gap-2 p-3 rounded-xl text-xs ${
                     darkMode
-                      ? 'bg-[#291e40] border-[#433266] text-[#e9d5ff]'
-                      : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+                      ? 'bg-[#2a1f45] text-[#e9d5ff]'
+                      : 'bg-[#dcfce7] text-[#14532d]'
                   }`}
                 >
                   <Lightbulb
@@ -366,10 +500,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 </div>
 
                 <div
-                  className={`flex items-start gap-2 p-2.5 rounded-xl border text-xs ${
+                  className={`flex items-start gap-2 p-3 rounded-xl text-xs ${
                     darkMode
-                      ? 'bg-[#291e40] border-[#433266] text-[#e9d5ff]'
-                      : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+                      ? 'bg-[#2a1f45] text-[#e9d5ff]'
+                      : 'bg-[#dcfce7] text-[#14532d]'
                   }`}
                 >
                   <Keyboard
@@ -391,10 +525,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
               {/* Installed Status or Direct Install CTA */}
               {isInstalled ? (
                 <div
-                  className={`p-3 rounded-xl border flex items-center gap-2 font-extrabold text-xs ${
+                  className={`p-3 rounded-xl flex items-center gap-2 font-extrabold text-xs ${
                     darkMode
-                      ? 'bg-[#143d25] border-[#22c55e] text-[#dcfce7]'
-                      : 'bg-[#dcfce7] border-[#22c55e] text-[#14532d]'
+                      ? 'bg-[#16422b] text-[#dcfce7]'
+                      : 'bg-[#dcfce7] text-[#14532d]'
                   }`}
                 >
                   <CheckCircle2 className="w-5 h-5 shrink-0 text-[#22c55e]" />
@@ -411,13 +545,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 </button>
               ) : null}
 
-              <div className={`p-3 rounded-xl border font-semibold leading-relaxed ${stepCardClass}`}>
+              <div className={`p-3 rounded-xl font-semibold leading-relaxed ${stepCardClass}`}>
                 با نصب کلمباز از طریق <strong className={darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'}>مرورگر کروم (Chrome)</strong>، آیکون 🥦 کلمباز روی صفحه اصلی گوشی شما قرار می‌گیرد و هر روز با یک لمس تمام‌صفحه باز می‌شود:
               </div>
 
               {/* 3 Clear Chrome Steps */}
               <div className="space-y-2">
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۱
                   </span>
@@ -425,10 +559,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                     <div className="font-extrabold flex items-center gap-1.5">
                       <span>منوی سه‌نقطه کروم را باز کنید</span>
                       <span
-                        className={`inline-flex items-center px-1.5 py-0.5 rounded-md border text-[11px] font-black ${
+                        className={`inline-flex items-center px-1.5 py-0.5 rounded-md text-[11px] font-black ${
                           darkMode
-                            ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd]'
-                            : 'bg-white border-[#86efac] text-[#6b21a8]'
+                            ? 'bg-[#2e224b] text-[#d8b4fe]'
+                            : 'bg-white text-[#6b21a8]'
                         }`}
                       >
                         <MoreVertical className="w-3.5 h-3.5" />
@@ -440,7 +574,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۲
                   </span>
@@ -454,7 +588,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۳
                   </span>
@@ -469,14 +603,14 @@ export const HelpModal: React.FC<HelpModalProps> = ({
 
               {/* Compact iOS Safari tip */}
               <div
-                className={`flex items-start gap-2 p-2.5 rounded-xl border text-[11px] ${
+                className={`flex items-start gap-2 p-3 rounded-xl text-[11px] ${
                   isIOS
                     ? darkMode
-                      ? 'bg-[#143d25] border-[#22c55e] text-[#dcfce7]'
-                      : 'bg-[#f3e8ff] border-[#9333ea] text-[#581c87]'
+                      ? 'bg-[#16422b] text-[#dcfce7]'
+                      : 'bg-[#ede9fe] text-[#581c87]'
                     : darkMode
-                    ? 'bg-[#291e40] border-[#433266] text-[#e9d5ff]'
-                    : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+                    ? 'bg-[#2a1f45] text-[#e9d5ff]'
+                    : 'bg-[#dcfce7] text-[#14532d]'
                 }`}
               >
                 <Share className="w-4 h-4 shrink-0 mt-0.5" />
@@ -493,10 +627,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
               {/* Live Notification Status & Action */}
               {isNotifActive ? (
                 <div
-                  className={`p-3 rounded-xl border space-y-2.5 ${
+                  className={`p-3 rounded-xl space-y-2.5 ${
                     darkMode
-                      ? 'bg-[#143d25] border-[#22c55e] text-[#dcfce7]'
-                      : 'bg-[#dcfce7] border-[#22c55e] text-[#14532d]'
+                      ? 'bg-[#16422b] text-[#dcfce7]'
+                      : 'bg-[#dcfce7] text-[#14532d]'
                   }`}
                 >
                   <div className="flex items-center gap-2 font-extrabold text-xs">
@@ -507,7 +641,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                     <button
                       type="button"
                       onClick={onSendTestNotification}
-                      className={`w-full py-2 px-3 rounded-lg font-extrabold text-xs border transition-colors ${secondaryBtnClass}`}
+                      className={`w-full py-2 px-3 rounded-xl font-extrabold text-xs transition-colors ${secondaryBtnClass}`}
                     >
                       ارسال یک اعلان آزمایشی 🔔
                     </button>
@@ -515,10 +649,10 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 </div>
               ) : notificationPermission === 'denied' ? (
                 <div
-                  className={`p-3 rounded-xl border space-y-2 text-xs ${
+                  className={`p-3 rounded-xl space-y-2 text-xs ${
                     darkMode
-                      ? 'bg-[#3b1525] border-rose-500 text-rose-100'
-                      : 'bg-rose-50 border-rose-400 text-rose-900'
+                      ? 'bg-[#3d1727] text-rose-100'
+                      : 'bg-rose-100 text-rose-900'
                   }`}
                 >
                   <div className="font-extrabold flex items-center gap-1.5">
@@ -532,14 +666,14 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                     <button
                       type="button"
                       onClick={onEnableNotifications}
-                      className={`w-full py-2 px-3 rounded-lg font-extrabold text-xs border transition-colors ${secondaryBtnClass}`}
+                      className={`w-full py-2 px-3 rounded-xl font-extrabold text-xs transition-colors ${secondaryBtnClass}`}
                     >
                       تغییر دادم، بررسی مجدد اعلان 🔔
                     </button>
                   )}
                 </div>
               ) : notificationPermission === 'unsupported' ? (
-                <div className={`p-3 rounded-xl border text-xs font-bold ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl text-xs font-bold ${stepCardClass}`}>
                   مرورگر فعلی شما از اعلان‌ها پشتیبانی نمی‌کند. برای دریافت اعلان روی گوشی، کلمباز را در <strong>Chrome</strong> باز کنید یا روی صفحه اصلی نصب نمایید.
                 </div>
               ) : (
@@ -553,13 +687,13 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 </button>
               )}
 
-              <div className={`p-3 rounded-xl border font-semibold leading-relaxed ${stepCardClass}`}>
+              <div className={`p-3 rounded-xl font-semibold leading-relaxed ${stepCardClass}`}>
                 با فعال کردن اعلان‌ها، هر روز با منتشر شدن کلمات جدید (ساعت ۰۰:۰۰ به وقت تهران) به شما یادآوری می‌کنیم تا بازی روز را از دست ندهید و استریک خود را حفظ کنید:
               </div>
 
               {/* Step-by-step Notification Guide */}
               <div className="space-y-2">
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۱
                   </span>
@@ -571,7 +705,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۲
                   </span>
@@ -583,7 +717,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                   </div>
                 </div>
 
-                <div className={`p-3 rounded-xl border flex items-start gap-2.5 ${stepCardClass}`}>
+                <div className={`p-3 rounded-xl flex items-start gap-2.5 ${stepCardClass}`}>
                   <span className={`w-6 h-6 rounded-lg flex items-center justify-center text-xs font-black shrink-0 ${stepBadgeClass}`}>
                     ۳
                   </span>
@@ -605,14 +739,14 @@ export const HelpModal: React.FC<HelpModalProps> = ({
               {([0, 1, 2] as const).map((idx) => (
                 <span
                   key={idx}
-                  className={`h-2 rounded-full ${
+                  className={`h-2 rounded-full transition-all ${
                     activeSlide === idx
                       ? darkMode
                         ? 'w-6 bg-[#22c55e]'
-                        : 'w-6 bg-[#6b21a8]'
+                        : 'w-6 bg-[#7e22ce]'
                       : darkMode
-                      ? 'w-2 bg-[#433266]'
-                      : 'w-2 bg-[#86efac]'
+                      ? 'w-2 bg-[#3d2e62]'
+                      : 'w-2 bg-[#bbf7d0]'
                   }`}
                 />
               ))}
@@ -623,7 +757,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 <button
                   type="button"
                   onClick={goPrev}
-                  className={`py-2.5 px-3.5 rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors shrink-0 ${secondaryBtnClass}`}
+                  className={`py-2.5 px-3.5 rounded-xl font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors shrink-0 ${secondaryBtnClass}`}
                 >
                   <ChevronRight className="w-4 h-4" />
                   <span>قبلی</span>
@@ -632,7 +766,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
                 <button
                   type="button"
                   onClick={onClose}
-                  className={`py-2.5 px-3.5 rounded-xl border font-bold text-xs sm:text-sm transition-colors shrink-0 ${secondaryBtnClass}`}
+                  className={`py-2.5 px-3.5 rounded-xl font-bold text-xs sm:text-sm transition-colors shrink-0 ${secondaryBtnClass}`}
                 >
                   شروع بازی
                 </button>

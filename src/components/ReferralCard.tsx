@@ -31,18 +31,18 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
   if (!username) {
     return (
       <div
-        className={`rounded-xl border-2 p-3 ${
+        className={`rounded-2xl p-3.5 ${
           darkMode
-            ? 'bg-[#1c1430] border-[#433266] text-[#f5f3ff]'
-            : 'bg-[#f3e8ff] border-[#c084fc] text-[#3b0764]'
+            ? 'bg-[#2a1f45] text-[#f5f3ff]'
+            : 'bg-[#f3e8ff] text-[#3b0764]'
         }`}
       >
         <div className="flex items-start gap-2.5">
           <div
-            className={`w-9 h-9 rounded-xl border flex items-center justify-center shrink-0 ${
+            className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${
               darkMode
-                ? 'bg-[#143d25] border-[#22c55e] text-[#4ade80]'
-                : 'bg-[#dcfce7] border-[#86efac] text-[#15803d]'
+                ? 'bg-[#16422b] text-[#4ade80]'
+                : 'bg-[#dcfce7] text-[#15803d]'
             }`}
           >
             <Gift className="w-4 h-4" />
@@ -54,7 +54,7 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
                 className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold ${
                   darkMode
                     ? 'bg-[#15803d] text-white'
-                    : 'bg-[#6b21a8] text-white'
+                    : 'bg-[#7e22ce] text-white'
                 }`}
               >
                 <GreenSeedIcon className="w-3 h-3" />
@@ -73,10 +73,10 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
               <button
                 type="button"
                 onClick={onOpenLogin}
-                className={`mt-2 inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold text-white transition-colors active:scale-95 ${
+                className={`mt-2.5 inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-[11px] font-extrabold text-white transition-colors active:scale-95 ${
                   darkMode
-                    ? 'bg-[#15803d] hover:bg-[#16a34a]'
-                    : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+                    ? 'bg-[#16a34a] hover:bg-[#15803d]'
+                    : 'bg-[#7e22ce] hover:bg-[#6b21a8]'
                 }`}
               >
                 <LogIn className="w-3.5 h-3.5" />
@@ -139,10 +139,10 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
 
   return (
     <div
-      className={`rounded-xl border-2 ${compact ? 'p-3' : 'p-3.5'} ${
+      className={`rounded-2xl ${compact ? 'p-3.5' : 'p-4'} ${
         darkMode
-          ? 'bg-[#172e24] border-[#22c55e]/80 text-[#ecfdf5]'
-          : 'bg-[#f0fdf4] border-[#22c55e] text-[#14532d]'
+          ? 'bg-[#163326] text-[#ecfdf5]'
+          : 'bg-[#dcfce7] text-[#14532d]'
       }`}
     >
       {/* Header Row */}
@@ -160,8 +160,8 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
         <span
           className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-extrabold shrink-0 ${
             darkMode
-              ? 'bg-[#15803d] text-white border border-[#4ade80]/60'
-              : 'bg-[#6b21a8] text-white'
+              ? 'bg-[#15803d] text-white'
+              : 'bg-[#7e22ce] text-white'
           }`}
         >
           <GreenSeedIcon className="w-3 h-3" />
@@ -182,10 +182,10 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
       {/* Referral URL Box */}
       <div
         dir="ltr"
-        className={`flex items-center justify-between gap-2 px-2.5 py-1.5 rounded-lg border text-[11px] font-mono mb-2.5 select-all overflow-hidden ${
+        className={`flex items-center justify-between gap-2 px-3 py-2 rounded-xl text-[11px] font-mono mb-2.5 select-all overflow-hidden ${
           darkMode
-            ? 'bg-[#111c19] border-[#2d6a4f] text-[#86efac]'
-            : 'bg-white border-[#86efac] text-[#14532d]'
+            ? 'bg-[#0e2219] text-[#86efac]'
+            : 'bg-white text-[#14532d]'
         }`}
         title={referralUrl}
       >
@@ -199,8 +199,8 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
           onClick={copyLink}
           className={`py-2 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors active:scale-95 text-white ${
             darkMode
-              ? 'bg-[#15803d] hover:bg-[#16a34a]'
-              : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+              ? 'bg-[#16a34a] hover:bg-[#15803d]'
+              : 'bg-[#7e22ce] hover:bg-[#6b21a8]'
           }`}
         >
           {copied ? (
@@ -219,10 +219,10 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
         <button
           type="button"
           onClick={shareLink}
-          className={`py-2 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors active:scale-95 border ${
+          className={`py-2 px-2.5 rounded-xl text-xs font-extrabold flex items-center justify-center gap-1.5 transition-colors active:scale-95 ${
             darkMode
-              ? 'bg-[#291e40] hover:bg-[#352752] border-[#6b21a8] text-[#e9d5ff]'
-              : 'bg-[#dcfce7] hover:bg-[#bbf7d0] border-[#86efac] text-[#14532d]'
+              ? 'bg-[#2e224b] hover:bg-[#3c2d62] text-[#e9d5ff]'
+              : 'bg-white hover:bg-[#eefaf2] text-[#14532d]'
           }`}
         >
           <Share2 className="w-3.5 h-3.5 shrink-0" />
@@ -234,8 +234,8 @@ export const ReferralCard: React.FC<ReferralCardProps> = ({
       <div
         className={`mt-2.5 pt-2 border-t flex items-center justify-between text-[11px] font-bold ${
           darkMode
-            ? 'border-[#2d6a4f]/70 text-[#d1fae5]'
-            : 'border-[#bbf7d0] text-[#166534]'
+            ? 'border-white/10 text-[#d1fae5]'
+            : 'border-emerald-950/10 text-[#166534]'
         }`}
       >
         <span className="inline-flex items-center gap-1">

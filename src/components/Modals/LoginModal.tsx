@@ -192,20 +192,24 @@ export const LoginModal: React.FC<LoginModalProps> = ({
     }
   };
 
+  const inputClass = darkMode
+    ? 'bg-[#161024] text-white placeholder-[#8e7fb0] focus:ring-2 focus:ring-[#4ade80]'
+    : 'bg-[#eefaf2] text-[#14532d] placeholder-[#527d63] focus:ring-2 focus:ring-[#7e22ce]';
+
   return (
     <div
       role="dialog"
       aria-modal="true"
       aria-label="ورود و ثبت‌نام حساب کلمباز"
       onClick={onClose}
-      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/75 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-[2px] animate-fade-in"
     >
       <div
         onClick={(e) => e.stopPropagation()}
-        className={`relative w-full max-w-sm rounded-2xl border-2 p-5 sm:p-6 shadow-2xl overflow-y-auto max-h-[92vh] ${
+        className={`relative w-full max-w-sm rounded-2xl p-5 sm:p-6 shadow-2xl overflow-y-auto max-h-[92vh] ${
           darkMode
-            ? 'bg-[#201733] border-[#433266] text-[#f5f3ff]'
-            : 'bg-white border-[#86efac] text-[#14532d]'
+            ? 'bg-[#211836] text-[#f5f3ff] shadow-black/50'
+            : 'bg-white text-[#14532d] shadow-emerald-950/15'
         }`}
       >
         {/* Always-visible Close Button (login is optional) */}
@@ -213,10 +217,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           type="button"
           onClick={onClose}
           aria-label="بستن پنجره"
-          className={`absolute top-4 left-4 p-1.5 rounded-lg transition-colors ${
+          className={`absolute top-4 left-4 p-1.5 rounded-xl transition-colors ${
             darkMode
-              ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
-              : 'text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
+              ? 'bg-[#2e224b] text-[#d8b4fe] hover:text-white hover:bg-[#3c2d62]'
+              : 'bg-[#eefaf2] text-[#166534] hover:text-[#14532d] hover:bg-[#dcfce7]'
           }`}
         >
           <X className="w-5 h-5" />
@@ -225,10 +229,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Header */}
         <div className="text-center mb-4">
           <div
-            className={`w-13 h-13 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl border-2 ${
-              darkMode
-                ? 'bg-[#143d25] border-[#22c55e]'
-                : 'bg-[#f3e8ff] border-[#9333ea]'
+            className={`w-13 h-13 mx-auto mb-2 rounded-2xl flex items-center justify-center text-3xl ${
+              darkMode ? 'bg-[#16422b]' : 'bg-[#f3e8ff]'
             }`}
           >
             {isFirstWinPrompt ? '🎉' : isHintPrompt ? '💡' : '🥦'}
@@ -256,10 +258,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Post-first-win benefits list */}
         {isFirstWinPrompt && (
           <div
-            className={`mb-4 p-3 rounded-xl border space-y-1.5 text-[11px] font-bold ${
+            className={`mb-4 p-3 rounded-xl space-y-1.5 text-[11px] font-bold ${
               darkMode
-                ? 'bg-[#161022] border-[#362854] text-[#e9d5ff]'
-                : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]'
+                ? 'bg-[#171126] text-[#e9d5ff]'
+                : 'bg-[#eefaf2] text-[#14532d]'
             }`}
           >
             <div className="flex items-center gap-2">
@@ -280,10 +282,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {/* Referral invite banner for guests arriving via ?ref= */}
         {!currentUsername && pendingReferrer && (
           <div
-            className={`mb-4 p-2.5 rounded-xl border-2 flex items-start gap-2 text-[11px] font-bold leading-relaxed ${
+            className={`mb-4 p-3 rounded-xl flex items-start gap-2 text-[11px] font-bold leading-relaxed ${
               darkMode
-                ? 'bg-[#143d25] border-[#22c55e] text-[#dcfce7]'
-                : 'bg-[#f0fdf4] border-[#22c55e] text-[#14532d]'
+                ? 'bg-[#16422b] text-[#dcfce7]'
+                : 'bg-[#dcfce7] text-[#14532d]'
             }`}
           >
             <Gift className="w-4 h-4 shrink-0 mt-0.5 text-[#4ade80]" />
@@ -298,10 +300,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
         {currentUsername && (
           <div className="mb-4 space-y-3">
             <div
-              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+              className={`p-3 rounded-xl flex items-center justify-between text-xs font-semibold ${
                 darkMode
-                  ? 'bg-[#26193d]/80 border-[#543c7d] text-[#f2edfa]'
-                  : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+                  ? 'bg-[#2a1f45] text-[#f2edfa]'
+                  : 'bg-[#dcfce7] text-[#14532d]'
               }`}
             >
               <span>
@@ -316,7 +318,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 <button
                   type="button"
                   onClick={onLogout}
-                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold transition-colors"
                 >
                   خروج
                 </button>
@@ -336,10 +338,8 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
         {/* Tabs: Login / Sign Up */}
         <div
-          className={`flex rounded-xl p-1 mb-4 border ${
-            darkMode
-              ? 'bg-[#161022] border-[#362854]'
-              : 'bg-[#dcfce7] border-[#86efac]'
+          className={`flex rounded-xl p-1 gap-1 mb-4 ${
+            darkMode ? 'bg-[#150f24]' : 'bg-[#e3f6ea]'
           }`}
         >
           <button
@@ -348,14 +348,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setTab('signup');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
               tab === 'signup'
                 ? darkMode
-                  ? 'bg-[#15803d] text-white'
-                  : 'bg-[#6b21a8] text-white'
+                  ? 'bg-[#15803d] text-white shadow-xs'
+                  : 'bg-[#7e22ce] text-white shadow-xs'
                 : darkMode
-                ? 'text-[#c4b5fd] hover:text-white'
-                : 'text-[#166534] hover:text-[#14532d]'
+                ? 'text-[#c4b5fd] hover:text-white hover:bg-[#2a1f44]'
+                : 'text-[#166534] hover:bg-[#ccefd9]'
             }`}
           >
             <UserPlus className="w-3.5 h-3.5" />
@@ -367,14 +367,14 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               setTab('login');
               setErrorMessage('');
             }}
-            className={`flex-1 py-1.5 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
+            className={`flex-1 py-2 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1.5 ${
               tab === 'login'
                 ? darkMode
-                  ? 'bg-[#6b21a8] text-white'
-                  : 'bg-[#15803d] text-white'
+                  ? 'bg-[#7e22ce] text-white shadow-xs'
+                  : 'bg-[#15803d] text-white shadow-xs'
                 : darkMode
-                ? 'text-[#c4b5fd] hover:text-white'
-                : 'text-[#166534] hover:text-[#14532d]'
+                ? 'text-[#c4b5fd] hover:text-white hover:bg-[#2a1f44]'
+                : 'text-[#166534] hover:bg-[#ccefd9]'
             }`}
           >
             <LogIn className="w-3.5 h-3.5" />
@@ -410,11 +410,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 placeholder="مثلاً: سهراب"
                 maxLength={30}
                 required
-                className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
-                  darkMode
-                    ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
-                }`}
+                className={`w-full pl-3 pr-9 py-2.5 rounded-xl text-xs font-bold focus:outline-hidden text-right transition-shadow ${inputClass}`}
               />
               <User
                 className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
@@ -442,11 +438,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                 onChange={(e) => setPassword(e.target.value)}
                 placeholder="حداقل ۴ نویسه"
                 required
-                className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
-                  darkMode
-                    ? 'bg-[#172e28]/90 border-[#3d8b73]/75 text-white placeholder-[#82b5a5] focus:border-[#d8b4fe]'
-                    : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
-                }`}
+                className={`w-full pl-3 pr-9 py-2.5 rounded-xl text-xs font-bold focus:outline-hidden text-right transition-shadow ${inputClass}`}
               />
               <Lock
                 className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
@@ -475,11 +467,7 @@ export const LoginModal: React.FC<LoginModalProps> = ({
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   placeholder="تکرار رمز عبور"
                   required
-                  className={`w-full pl-3 pr-9 py-2 rounded-xl border-2 text-xs font-bold focus:outline-hidden text-right ${
-                    darkMode
-                      ? 'bg-[#1c132e]/90 border-[#543c7d] text-white placeholder-[#a594c4] focus:border-[#6ee7b7]'
-                      : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d] placeholder-[#4d7c5f] focus:border-[#6b21a8]'
-                  }`}
+                  className={`w-full pl-3 pr-9 py-2.5 rounded-xl text-xs font-bold focus:outline-hidden text-right transition-shadow ${inputClass}`}
                 />
                 <KeyRound
                   className={`w-4 h-4 absolute right-3 top-1/2 -translate-y-1/2 ${
@@ -495,10 +483,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
             <button
               type="submit"
               disabled={isSubmitting}
-              className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-white active:scale-98 transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-60 ${
+              className={`w-full py-2.5 px-4 rounded-xl font-extrabold text-white active:scale-98 transition-colors flex items-center justify-center gap-2 text-xs sm:text-sm disabled:opacity-60 shadow-sm ${
                 darkMode
-                  ? 'bg-[#15803d] hover:bg-[#16a34a]'
-                  : 'bg-[#6b21a8] hover:bg-[#7e22ce]'
+                  ? 'bg-[#16a34a] hover:bg-[#15803d]'
+                  : 'bg-[#7e22ce] hover:bg-[#6b21a8]'
               }`}
             >
               {isSubmitting ? (
@@ -527,10 +515,10 @@ export const LoginModal: React.FC<LoginModalProps> = ({
               <button
                 type="button"
                 onClick={onClose}
-                className={`w-full py-2 px-4 rounded-xl font-bold text-xs transition-colors border ${
+                className={`w-full py-2.5 px-4 rounded-xl font-bold text-xs transition-colors ${
                   darkMode
-                    ? 'bg-[#291e40] border-[#433266] text-[#c4b5fd] hover:text-white hover:bg-[#352752]'
-                    : 'bg-[#dcfce7] border-[#86efac] text-[#166534] hover:bg-[#bbf7d0]'
+                    ? 'bg-[#2e224b] text-[#d8c8ff] hover:text-white hover:bg-[#3c2d62]'
+                    : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]'
                 }`}
               >
                 فعلاً نه، ادامه به عنوان مهمان

@@ -62,11 +62,11 @@ export const AdBanner: React.FC<AdBannerProps> = ({
   };
 
   const bgClasses = darkMode
-    ? `${ad.bgGradientDark || 'bg-[#201733]'} ${ad.borderColor || 'border-[#433266]'} text-[#f5f3ff]`
-    : `${ad.bgGradientLight || 'bg-[#f0eaf8]'} ${ad.borderColorLight || 'border-[#cbbce0]'} text-[#1e1033]`;
+    ? `${ad.bgGradientDark || 'bg-[#211836]'} text-[#f5f3ff] shadow-md shadow-black/20`
+    : `${ad.bgGradientLight || 'bg-[#f0eaf8]'} text-[#1e1033] shadow-sm shadow-emerald-950/6`;
 
   const btnClasses = darkMode
-    ? `${ad.btnGradientDark || 'bg-[#15803d] hover:bg-[#16a34a]'}`
+    ? `${ad.btnGradientDark || 'bg-[#16a34a] hover:bg-[#15803d]'}`
     : `${ad.btnGradientLight || 'bg-[#15803d] hover:bg-[#166534]'}`;
 
   const emailClasses = darkMode
@@ -74,8 +74,8 @@ export const AdBanner: React.FC<AdBannerProps> = ({
     : ad.emailTextLight || 'text-[#15803d]';
 
   const boxClasses = darkMode
-    ? ad.boxBgDark || 'bg-[#161022] border-[#362854]'
-    : ad.boxBgLight || 'bg-white border-[#cbbce0]';
+    ? ad.boxBgDark || 'bg-[#161024]'
+    : ad.boxBgLight || 'bg-white/90';
 
   // Sidebar layout on laptop/desktop
   if (position === 'sidebar') {
@@ -84,7 +84,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
         <div
           role="region"
           aria-label="شبکه‌های اجتماعی کلمباز"
-          className={`w-full rounded-2xl border-2 p-3 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
+          className={`w-full rounded-2xl p-3.5 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
         >
           <div className="flex items-center gap-1.5 mb-2">
             <span
@@ -92,14 +92,14 @@ export const AdBanner: React.FC<AdBannerProps> = ({
             >
               {ad.badgeText || 'شبکه‌های اجتماعی'}
             </span>
-            <span className="text-[10px] font-bold opacity-85">
+            <span className="text-[10px] font-bold opacity-80">
               صفحات رسمی
             </span>
           </div>
 
           <div className="text-center my-1.5">
             <div
-              className={`w-10 h-10 mx-auto mb-1.5 rounded-xl border flex items-center justify-center text-xl shadow-inner ${boxClasses}`}
+              className={`w-10 h-10 mx-auto mb-1.5 rounded-xl flex items-center justify-center text-xl ${boxClasses}`}
             >
               {ad.icon}
             </div>
@@ -120,11 +120,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
               href={KALAMBAZ_SOCIALS.telegram.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`w-full py-1.5 px-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-extrabold transition-all hover:opacity-95 ${
-                darkMode
-                  ? 'bg-[#0284c7] border-[#38bdf8]/70 text-white hover:bg-[#0369a1]'
-                  : 'bg-[#0284c7] border-[#0369a1] text-white hover:bg-[#0369a1]'
-              }`}
+              className="w-full py-2 px-3 rounded-xl flex items-center justify-between gap-2 text-xs font-extrabold transition-colors active:scale-98 bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-xs"
             >
               <span className="flex items-center gap-1.5">
                 <TelegramIcon className="w-3.5 h-3.5 shrink-0" />
@@ -139,11 +135,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
               href={KALAMBAZ_SOCIALS.x.url}
               target="_blank"
               rel="noopener noreferrer"
-              className={`w-full py-1.5 px-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-extrabold transition-all hover:opacity-95 ${
-                darkMode
-                  ? 'bg-[#111827] border-[#475569] text-white hover:bg-[#1f2937]'
-                  : 'bg-[#0f172a] border-[#0f172a] text-white hover:bg-[#1e293b]'
-              }`}
+              className="w-full py-2 px-3 rounded-xl flex items-center justify-between gap-2 text-xs font-extrabold transition-colors active:scale-98 bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-xs"
             >
               <span className="flex items-center gap-1.5">
                 <XSocialIcon className="w-3.5 h-3.5 shrink-0" />
@@ -162,23 +154,22 @@ export const AdBanner: React.FC<AdBannerProps> = ({
       <div
         role="region"
         aria-label="جایگاه تبلیغات کلمباز"
-        className={`w-full rounded-2xl border-2 p-3 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
+        className={`w-full rounded-2xl p-3.5 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
       >
-
         <div className="flex items-center gap-1.5 mb-2">
           <span
             className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none text-white ${btnClasses}`}
           >
             {ad.badgeText || 'پذیرش تبلیغات'}
           </span>
-          <span className="text-[10px] font-bold opacity-85">
+          <span className="text-[10px] font-bold opacity-80">
             جایگاه آگهی
           </span>
         </div>
 
         <div className="text-center my-1.5">
           <div
-            className={`w-10 h-10 mx-auto mb-1.5 rounded-xl border flex items-center justify-center text-xl shadow-inner ${boxClasses}`}
+            className={`w-10 h-10 mx-auto mb-1.5 rounded-xl flex items-center justify-center text-xl ${boxClasses}`}
           >
             {ad.icon}
           </div>
@@ -189,21 +180,16 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           >
             {ad.title}
           </h4>
-          <p
-            className={`text-[11px] font-medium leading-snug px-1 opacity-90`}
-          >
+          <p className="text-[11px] font-medium leading-snug px-1 opacity-90">
             {ad.tagline}
           </p>
         </div>
 
         <div
           dir="ltr"
-          className={`my-2 p-1.5 rounded-xl border text-center ${boxClasses}`}
+          className={`my-2 p-2 rounded-xl text-center ${boxClasses}`}
         >
-          <span
-            dir="rtl"
-            className={`text-[10px] font-bold block opacity-85`}
-          >
+          <span dir="rtl" className="text-[10px] font-bold block opacity-80">
             ایمیل ارتباطی:
           </span>
           <a
@@ -217,7 +203,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
         <button
           type="button"
           onClick={handleClickAd}
-          className={`w-full mt-1.5 py-1.5 px-3 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-all ${btnClasses}`}
+          className={`w-full mt-1.5 py-2 px-3 rounded-xl text-white text-xs font-extrabold flex items-center justify-center gap-1.5 shadow-sm active:scale-98 transition-colors ${btnClasses}`}
         >
           <Mail className="w-3.5 h-3.5" />
           <span>{ad.ctaText}</span>
@@ -256,7 +242,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
       }`}
     >
       <div
-        className={`relative overflow-hidden rounded-xl border px-2 py-1 sm:px-3 sm:py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 shadow-2xs transition-colors duration-500 ${bgClasses}`}
+        className={`relative overflow-hidden rounded-xl px-2.5 py-1.5 sm:px-3 sm:py-1.5 flex items-center justify-between gap-1.5 sm:gap-2 transition-colors duration-500 ${bgClasses}`}
       >
         <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 flex-1">
           <span className="text-sm sm:text-base shrink-0 select-none">
@@ -316,7 +302,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`کانال تلگرام ${KALAMBAZ_SOCIALS.telegram.handle}`}
-                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-2xs transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white transition-colors whitespace-nowrap"
               >
                 <TelegramIcon className="w-3 h-3 shrink-0" />
                 <span>تلگرام</span>
@@ -326,7 +312,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 target="_blank"
                 rel="noopener noreferrer"
                 aria-label={`صفحه ایکس ${KALAMBAZ_SOCIALS.x.handle}`}
-                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-2xs transition-colors whitespace-nowrap"
+                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white transition-colors whitespace-nowrap"
               >
                 <XSocialIcon className="w-3 h-3 shrink-0" />
                 <span>X</span>
@@ -336,7 +322,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
             <button
               type="button"
               onClick={handleClickAd}
-              className={`flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg text-white shadow-2xs transition-all duration-500 whitespace-nowrap ${btnClasses}`}
+              className={`flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2.5 py-1 rounded-lg text-white transition-colors duration-300 whitespace-nowrap ${btnClasses}`}
             >
               <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
               <span>{ad.ctaText}</span>
