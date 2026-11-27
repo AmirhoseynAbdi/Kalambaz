@@ -53,14 +53,21 @@ function saveLocalAccounts(accounts: { [username: string]: UserAccount }): void 
 export interface AuthResponse {
   account: UserAccount;
   token: string;
+  referralApplied?: boolean;
 }
 
 export async function apiSignup(
   username: string,
   password: string,
   initialStats?: PlayerStats,
-  initialGameStates?: { [len: number]: DailyGameState }
+  initialGameStates?: { [len: number]: DailyGameState },
+  referredBy?: string | null
 ): Promise<AuthResponse> {
+  const cleanReferredBy =
+    typeof referredBy === 'string' && referredBy.trim() && referredBy.trim() !== username.trim()
+      ? referredBy.trim()
+      : undefined;
+
   try {
     const res = await fetch('/api/auth/signup', {
       method: 'POST',
@@ -70,6 +77,7 @@ export async function apiSignup(
         password,
         stats: initialStats,
         gameStates: initialGameStates,
+        referredBy: cleanReferredBy,
       }),
     });
 
@@ -91,7 +99,7 @@ export async function apiSignup(
     }
   }
 
-  // Fallback for static-only cPanel hosting when Node backend is not active
+  // Fallback for static-only cPanel hosting when backend is not active
   const accounts = getLocalAccounts();
   if (accounts[username]) {
     throw new Error('این نام کاربری قبلاً ثبت شده است. لطفاً وارد شوید.');
@@ -104,10 +112,25 @@ export async function apiSignup(
     gameStates: initialGameStates || {},
   };
   accounts[username] = newAccount;
+  let referralApplied = false;
+  if (cleanReferredBy && accounts[cleanReferredBy]) {
+    const refAcc = accounts[cleanReferredBy];
+    const refStats = ensureStarterBonus(refAcc.stats || createEmptyStats());
+    accounts[cleanReferredBy] = {
+      ...refAcc,
+      stats: {
+        ...refStats,
+        points: (Number(refStats.points) || 0) + 100,
+        referralsCount: (Number(refStats.referralsCount) || 0) + 1,
+        referralPointsEarned: (Number(refStats.referralPointsEarned) || 0) + 100,
+      },
+    };
+    referralApplied = true;
+  }
   saveLocalAccounts(accounts);
   const localToken = `local:${username}`;
   setSessionToken(localToken);
-  return { account: newAccount, token: localToken };
+  return { account: newAccount, token: localToken, referralApplied };
 }
 
 export async function apiLogin(

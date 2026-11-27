@@ -7,10 +7,12 @@ import {
   Sparkles,
   Lightbulb,
 } from 'lucide-react';
-import { PlayerStats, WordEntry, EvaluationResult, GameStatus } from '../../types';
+import { PlayerStats, WordEntry, EvaluationResult, GameStatus, DailyGameState } from '../../types';
 import { calculateGuessPoints, HINT_COST } from '../../game/wordleLogic';
 import { GreenSeedIcon } from '../GreenSeedIcon';
 import { KALAMBAZ_SOCIALS, TelegramIcon, XSocialIcon } from '../SocialIcons';
+import { ReferralCard } from '../ReferralCard';
+import { StreakCalendar } from '../StreakCalendar';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -24,7 +26,10 @@ interface StatsModalProps {
   hardMode: boolean;
   darkMode?: boolean;
   isLoggedIn?: boolean;
+  username?: string;
+  gameStates?: { [len: number]: DailyGameState };
   onOpenLogin?: () => void;
+  onNotify?: (msg: string) => void;
 }
 
 export const StatsModal: React.FC<StatsModalProps> = ({
@@ -39,7 +44,10 @@ export const StatsModal: React.FC<StatsModalProps> = ({
   hardMode,
   darkMode = true,
   isLoggedIn = false,
+  username,
+  gameStates,
   onOpenLogin,
+  onNotify,
 }) => {
   const [copied, setCopied] = useState(false);
   const [timeLeft, setTimeLeft] = useState('');
@@ -344,6 +352,13 @@ export const StatsModal: React.FC<StatsModalProps> = ({
             </div>
           </div>
 
+          {/* Calendar View of Completed Daily Puzzles & Highlighted Long Streaks */}
+          <StreakCalendar
+            stats={stats}
+            gameStates={gameStates}
+            darkMode={darkMode}
+          />
+
           {/* Note on Streak preservation */}
           <div
             className={`flex items-start gap-2 p-2.5 rounded-xl border text-[11px] font-semibold leading-relaxed mb-4 ${
@@ -422,34 +437,25 @@ export const StatsModal: React.FC<StatsModalProps> = ({
             </div>
           </div>
 
-          {/* Guest Account Callout (when not logged in) */}
-          {!isLoggedIn && onOpenLogin && (
-            <div
-              className={`mb-4 p-3 rounded-xl border-2 flex flex-col sm:flex-row items-center justify-between gap-2.5 ${
-                darkMode
-                  ? 'bg-[#291e40] border-[#433266] text-[#f5f3ff]'
-                  : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]'
-              }`}
-            >
-              <p className="text-[11px] font-bold leading-relaxed text-center sm:text-right">
-                برای حفظ <strong>استریک روزانه</strong>، ذخیره <strong>بذرها</strong> و اشتراک‌گذاری نتایج در دستگاه‌های دیگر، وارد حساب شوید یا ثبت‌نام کنید.
-              </p>
-              <button
-                type="button"
-                onClick={() => {
-                  onClose();
-                  onOpenLogin();
-                }}
-                className={`shrink-0 px-3 py-1.5 rounded-lg text-xs font-extrabold text-white transition-colors ${
-                  darkMode
-                    ? 'bg-[#6b21a8] hover:bg-[#7e22ce]'
-                    : 'bg-[#15803d] hover:bg-[#16a34a]'
-                }`}
-              >
-                ورود / ساخت حساب
-              </button>
-            </div>
-          )}
+          {/* Referral Link Card (+100 Seeds per Successful Invite) */}
+          <div className="mb-4">
+            <ReferralCard
+              username={isLoggedIn ? username : undefined}
+              referralsCount={stats.referralsCount || 0}
+              referralPointsEarned={stats.referralPointsEarned || 0}
+              darkMode={darkMode}
+              onOpenLogin={
+                onOpenLogin
+                  ? () => {
+                      onClose();
+                      onOpenLogin();
+                    }
+                  : undefined
+              }
+              onNotify={onNotify}
+              compact
+            />
+          </div>
 
           {/* Social Channels Strip (Telegram & X) */}
           <div

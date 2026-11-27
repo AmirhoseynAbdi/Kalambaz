@@ -34,6 +34,9 @@ export interface PlayerStats {
   guessDistribution: { [guesses: number]: number }; // 1..6 -> count
   points: number;
   starterBonusGranted?: boolean;
+  referralsCount?: number;
+  referralPointsEarned?: number;
+  completedDates?: { [dateKey: string]: (4 | 5 | 6)[] }; // YYYY-MM-DD -> solved word lengths
 }
 
 export interface UserAccount {

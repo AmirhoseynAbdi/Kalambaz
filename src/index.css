@@ -83,6 +83,30 @@
   animation: tileWinBounce 1000ms ease;
 }
 
+@keyframes keyPressPulse {
+  0% {
+    transform: scale(0.94);
+    box-shadow: 0 0 0 0 var(--key-pulse-glow, rgba(168, 85, 247, 0.85)),
+      0 0 12px 2px var(--key-pulse-glow, rgba(168, 85, 247, 0.7));
+    border-color: var(--key-pulse-border, #c084fc);
+  }
+  45% {
+    transform: scale(1.05);
+    box-shadow: 0 0 0 4px var(--key-pulse-ring, rgba(168, 85, 247, 0.35)),
+      0 0 16px 3px var(--key-pulse-glow, rgba(168, 85, 247, 0.75));
+    border-color: var(--key-pulse-border, #c084fc);
+  }
+  100% {
+    transform: scale(1);
+    box-shadow: 0 0 0 7px transparent, 0 0 0 0 transparent;
+  }
+}
+
+.animate-key-pulse {
+  animation: keyPressPulse 300ms cubic-bezier(0.22, 1, 0.36, 1) forwards;
+  z-index: 15;
+}
+
 /* 3D perspective flip container */
 .tile-perspective {
   perspective: 600px;

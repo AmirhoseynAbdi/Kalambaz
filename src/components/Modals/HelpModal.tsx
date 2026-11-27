@@ -125,7 +125,7 @@ export const HelpModal: React.FC<HelpModalProps> = ({
     activeSlide === 0
       ? {
           icon: <span className="text-2xl select-none">🥦</span>,
-          title: 'چطور کَلَمباز بازی کنیم؟',
+          title: 'چطور کلمباز بازی کنیم؟',
           subtitle: 'کلمه پنهان امروز را در ۶ تلاش حدس بزنید!',
         }
       : activeSlide === 1

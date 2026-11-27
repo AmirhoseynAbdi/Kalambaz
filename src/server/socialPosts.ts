@@ -1,6 +1,16 @@
 import { GoogleGenAI } from '@google/genai';
 import crypto from 'node:crypto';
-import type Database from 'better-sqlite3';
+
+export interface SocialPostStatement {
+  get(...params: unknown[]): unknown;
+  all(...params: unknown[]): unknown[];
+  run(...params: unknown[]): { changes: number | bigint };
+}
+
+export interface SocialPostDatabase {
+  exec(sql: string): unknown;
+  prepare(sql: string): SocialPostStatement;
+}
 
 const X_POSTS_URL = 'https://api.x.com/2/tweets';
 
@@ -102,7 +112,7 @@ export function getTehranDateTime(date: Date): { date: string; hour: number; min
   };
 }
 
-export function ensureSocialPostSchema(db: Database.Database): void {
+export function ensureSocialPostSchema(db: SocialPostDatabase): void {
   db.exec(`
     CREATE TABLE IF NOT EXISTS social_post_runs (
       date TEXT PRIMARY KEY,
@@ -261,7 +271,7 @@ export async function publishXPost(
 }
 
 export async function publishDailySocialPost(
-  db: Database.Database,
+  db: SocialPostDatabase,
   config: SocialPostConfig,
   date: string,
   dependencies: SocialPostDependencies

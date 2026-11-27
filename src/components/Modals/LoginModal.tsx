@@ -11,9 +11,12 @@ import {
   Flame,
   Share2,
   Sparkles,
+  Gift,
 } from 'lucide-react';
 import { UserAccount, PlayerStats, DailyGameState } from '../../types';
 import { apiLogin, apiSignup } from '../../utils/api';
+import { REFERRAL_REWARD_POINTS } from '../../utils/referral';
+import { ReferralCard } from '../ReferralCard';
 
 interface LoginModalProps {
   isOpen: boolean;
@@ -25,6 +28,11 @@ interface LoginModalProps {
   promptReason?: 'default' | 'first_win' | 'hint_required';
   guestStats?: PlayerStats;
   guestGameStates?: { [len: number]: DailyGameState };
+  pendingReferrer?: string | null;
+  referralsCount?: number;
+  referralPointsEarned?: number;
+  onNotify?: (msg: string) => void;
+  onReferralConsumed?: () => void;
 }
 
 export const LoginModal: React.FC<LoginModalProps> = ({
@@ -37,9 +45,16 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   promptReason = 'default',
   guestStats,
   guestGameStates,
+  pendingReferrer = null,
+  referralsCount = 0,
+  referralPointsEarned = 0,
+  onNotify,
+  onReferralConsumed,
 }) => {
+  const shouldDefaultSignup =
+    promptReason === 'first_win' || (!currentUsername && Boolean(pendingReferrer));
   const [tab, setTab] = useState<'login' | 'signup'>(
-    promptReason === 'first_win' ? 'signup' : 'login'
+    shouldDefaultSignup ? 'signup' : 'login'
   );
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
@@ -47,13 +62,17 @@ export const LoginModal: React.FC<LoginModalProps> = ({
   const [errorMessage, setErrorMessage] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // Default to Sign Up tab when prompting right after the first solved puzzle
+  // Default to Sign Up tab when prompting right after the first solved puzzle or via referral link
   useEffect(() => {
     if (isOpen) {
-      setTab(promptReason === 'first_win' ? 'signup' : 'login');
+      setTab(
+        promptReason === 'first_win' || (!currentUsername && Boolean(pendingReferrer))
+          ? 'signup'
+          : 'login'
+      );
       setErrorMessage('');
     }
-  }, [isOpen, promptReason]);
+  }, [isOpen, promptReason, currentUsername, pendingReferrer]);
 
   if (!isOpen) return null;
 
@@ -147,16 +166,23 @@ export const LoginModal: React.FC<LoginModalProps> = ({
 
     setIsSubmitting(true);
     try {
-      // Carry over current guest progress (solved puzzle, streak, seeds) into the new account!
-      const { account } = await apiSignup(
+      // Carry over current guest progress (solved puzzle, streak, seeds) and optional referral into the new account
+      const { account, referralApplied } = await apiSignup(
         cleanUsername,
         password,
         guestStats,
-        guestGameStates
+        guestGameStates,
+        pendingReferrer
       );
       const accounts = getStoredAccounts();
       accounts[account.username] = account;
       saveStoredAccounts(accounts);
+      onReferralConsumed?.();
+      if (referralApplied && pendingReferrer) {
+        onNotify?.(
+          `🎁 دعوت «${pendingReferrer}» ثبت شد و ${REFERRAL_REWARD_POINTS.toLocaleString('fa-IR')} بذر هدیه به ایشان تعلق گرفت!`
+        );
+      }
       onLoginSuccess(account);
       onClose();
     } catch (err: any) {
@@ -251,32 +277,60 @@ export const LoginModal: React.FC<LoginModalProps> = ({
           </div>
         )}
 
-        {/* Currently logged-in indicator */}
-        {currentUsername && (
+        {/* Referral invite banner for guests arriving via ?ref= */}
+        {!currentUsername && pendingReferrer && (
           <div
-            className={`mb-4 p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+            className={`mb-4 p-2.5 rounded-xl border-2 flex items-start gap-2 text-[11px] font-bold leading-relaxed ${
               darkMode
-                ? 'bg-[#26193d]/80 border-[#543c7d] text-[#f2edfa]'
-                : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+                ? 'bg-[#143d25] border-[#22c55e] text-[#dcfce7]'
+                : 'bg-[#f0fdf4] border-[#22c55e] text-[#14532d]'
             }`}
           >
+            <Gift className="w-4 h-4 shrink-0 mt-0.5 text-[#4ade80]" />
             <span>
-              حساب فعال:{' '}
-              <strong
-                className={darkMode ? 'text-[#86efac]' : 'text-[#15803d]'}
-              >
-                {currentUsername}
-              </strong>
+              دعوت‌شده توسط <strong>«{pendingReferrer}»</strong> — با ساخت حساب جدید،{' '}
+              {REFERRAL_REWARD_POINTS.toLocaleString('fa-IR')} بذر راهنما به ایشان هدیه داده می‌شود!
             </span>
-            {onLogout && (
-              <button
-                type="button"
-                onClick={onLogout}
-                className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold"
-              >
-                خروج
-              </button>
-            )}
+          </div>
+        )}
+
+        {/* Currently logged-in indicator + personal referral card */}
+        {currentUsername && (
+          <div className="mb-4 space-y-3">
+            <div
+              className={`p-2.5 rounded-xl border flex items-center justify-between text-xs font-semibold ${
+                darkMode
+                  ? 'bg-[#26193d]/80 border-[#543c7d] text-[#f2edfa]'
+                  : 'bg-[#dcfce7] border-[#86efac] text-[#14532d]'
+              }`}
+            >
+              <span>
+                حساب فعال:{' '}
+                <strong
+                  className={darkMode ? 'text-[#86efac]' : 'text-[#15803d]'}
+                >
+                  {currentUsername}
+                </strong>
+              </span>
+              {onLogout && (
+                <button
+                  type="button"
+                  onClick={onLogout}
+                  className="px-2.5 py-1 rounded-lg bg-rose-600 hover:bg-rose-700 text-white font-bold"
+                >
+                  خروج
+                </button>
+              )}
+            </div>
+
+            <ReferralCard
+              username={currentUsername}
+              referralsCount={referralsCount}
+              referralPointsEarned={referralPointsEarned}
+              darkMode={darkMode}
+              onNotify={onNotify}
+              compact
+            />
           </div>
         )}
 

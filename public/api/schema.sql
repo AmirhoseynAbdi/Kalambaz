@@ -53,3 +53,12 @@ CREATE TABLE IF NOT EXISTS `social_post_deliveries` (
     FOREIGN KEY (`date`) REFERENCES `social_post_runs` (`date`)
     ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+
+CREATE TABLE IF NOT EXISTS `referrals` (
+  `invitee_username` VARCHAR(64) NOT NULL,
+  `referrer_username` VARCHAR(64) NOT NULL,
+  `reward_points` INT NOT NULL DEFAULT 100,
+  `created_at` VARCHAR(40) NOT NULL,
+  PRIMARY KEY (`invitee_username`),
+  KEY `idx_referrals_referrer` (`referrer_username`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;

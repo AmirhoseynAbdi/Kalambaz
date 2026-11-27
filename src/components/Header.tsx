@@ -32,6 +32,21 @@ interface HeaderProps {
   gameStates?: { [len: number]: DailyGameState };
 }
 
+const LENGTH_TAB_THEME: Record<4 | 5 | 6, { active: string; dot: string }> = {
+  4: {
+    active: 'bg-[#15803d] text-white ring-1 ring-[#4ade80]/80 shadow-xs',
+    dot: 'bg-[#4ade80]',
+  },
+  5: {
+    active: 'bg-[#7e22ce] text-white ring-1 ring-[#c084fc]/80 shadow-xs',
+    dot: 'bg-[#c084fc]',
+  },
+  6: {
+    active: 'bg-[#d97706] text-white ring-1 ring-[#fbbf24]/80 shadow-xs',
+    dot: 'bg-[#fbbf24]',
+  },
+};
+
 export const Header: React.FC<HeaderProps> = ({
   currentLength,
   onSelectLength,
@@ -75,7 +90,7 @@ export const Header: React.FC<HeaderProps> = ({
                 darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'
               }`}
             >
-              کَلَمباز
+              کلمباز
             </h1>
             <span
               className={`hidden xl:inline-block text-xs font-mono font-bold ${
@@ -120,22 +135,26 @@ export const Header: React.FC<HeaderProps> = ({
               const faNum = len.toLocaleString('fa-IR');
               const st = gameStates?.[len];
               const isWon = st?.status === 'won';
+              const theme = LENGTH_TAB_THEME[len];
               return (
                 <button
                   key={len}
                   type="button"
                   onClick={() => onSelectLength(len)}
                   aria-label={`بازی با کلمات ${faNum} حرفی`}
-                  className={`px-3.5 py-1 rounded-lg text-xs sm:text-sm font-extrabold transition-colors flex items-center gap-1 whitespace-nowrap ${
+                  className={`px-3.5 py-1 rounded-lg text-xs sm:text-sm font-extrabold transition-all flex items-center gap-1.5 whitespace-nowrap ${
                     isSelected
-                      ? darkMode
-                        ? 'bg-[#15803d] text-white'
-                        : 'bg-[#6b21a8] text-white'
+                      ? theme.active
                       : darkMode
                       ? 'text-[#c4b5fd] hover:text-white hover:bg-[#291e40]'
                       : 'text-[#166534] hover:bg-[#bbf7d0]'
                   }`}
                 >
+                  <span
+                    className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                      isSelected ? 'bg-white' : theme.dot
+                    }`}
+                  />
                   <span>{faNum} حرفی</span>
                   {isWon && <CheckCircle2 className="w-3.5 h-3.5 shrink-0" />}
                 </button>
@@ -305,6 +324,7 @@ export const Header: React.FC<HeaderProps> = ({
             const isWon = st?.status === 'won';
             const isLost = st?.status === 'lost';
             const guessCount = st?.guesses?.length || 0;
+            const theme = LENGTH_TAB_THEME[len];
 
             return (
               <button
@@ -312,16 +332,19 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={() => onSelectLength(len)}
                 aria-label={`بازی با کلمات ${faNum} حرفی`}
-                className={`py-1.5 px-2 rounded-lg text-xs font-extrabold transition-colors flex items-center justify-center gap-1 whitespace-nowrap ${
+                className={`py-1.5 px-2 rounded-lg text-xs font-extrabold transition-all flex items-center justify-center gap-1 whitespace-nowrap ${
                   isSelected
-                    ? darkMode
-                      ? 'bg-[#15803d] text-white'
-                      : 'bg-[#6b21a8] text-white'
+                    ? theme.active
                     : darkMode
                     ? 'text-[#c4b5fd] hover:text-white active:bg-[#291e40]'
                     : 'text-[#166534] active:bg-[#dcfce7]'
                 }`}
               >
+                <span
+                  className={`w-1.5 h-1.5 rounded-full shrink-0 ${
+                    isSelected ? 'bg-white' : theme.dot
+                  }`}
+                />
                 <span>{faNum} حرفی</span>
                 {isWon ? (
                   <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-[#bbf7d0]" />

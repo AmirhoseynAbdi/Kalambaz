@@ -263,12 +263,23 @@ export function updateDailyStreak(
   currentStats: PlayerStats,
   todayStr: string,
   isWin: boolean,
-  numGuesses: number
+  numGuesses: number,
+  wordLength?: 4 | 5 | 6
 ): PlayerStats {
+  const existingCompleted: { [dateKey: string]: (4 | 5 | 6)[] } = {};
+  if (currentStats.completedDates && typeof currentStats.completedDates === 'object') {
+    for (const [k, v] of Object.entries(currentStats.completedDates)) {
+      if (/^\d{4}-\d{2}-\d{2}$/.test(k) && Array.isArray(v)) {
+        existingCompleted[k] = [...v];
+      }
+    }
+  }
+
   const stats: PlayerStats = {
     ...currentStats,
     points: Math.max(0, Number(currentStats.points) || 0),
     guessDistribution: { ...currentStats.guessDistribution },
+    completedDates: existingCompleted,
   };
 
   stats.gamesPlayed += 1;
@@ -276,6 +287,19 @@ export function updateDailyStreak(
     stats.gamesWon += 1;
     stats.guessDistribution[numGuesses] = (stats.guessDistribution[numGuesses] || 0) + 1;
     stats.points += calculateGuessPoints(numGuesses, true);
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(todayStr)) {
+      const prevLengths = existingCompleted[todayStr] || [];
+      if (wordLength && !prevLengths.includes(wordLength)) {
+        existingCompleted[todayStr] = [...prevLengths, wordLength].sort((a, b) => a - b) as (
+          | 4
+          | 5
+          | 6
+        )[];
+      } else if (!(todayStr in existingCompleted)) {
+        existingCompleted[todayStr] = [];
+      }
+    }
   }
 
   // Check streak based on day continuity

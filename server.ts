@@ -77,6 +77,14 @@ db.exec(`
   );
   CREATE INDEX IF NOT EXISTS idx_push_username ON push_subscriptions(username);
   CREATE INDEX IF NOT EXISTS idx_push_last_date ON push_subscriptions(last_pushed_date);
+
+  CREATE TABLE IF NOT EXISTS referrals (
+    invitee_username TEXT PRIMARY KEY,
+    referrer_username TEXT NOT NULL,
+    reward_points INTEGER NOT NULL DEFAULT 100,
+    created_at TEXT NOT NULL
+  );
+  CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_username);
 `);
 ensureSocialPostSchema(db);
 
@@ -115,6 +123,8 @@ function getOrCreateServerVapidKeys(): VapidKeyPair {
   return generated;
 }
 
+const REFERRAL_REWARD_POINTS = 100;
+
 const DEFAULT_STATS = {
   gamesPlayed: 0,
   gamesWon: 0,
@@ -124,6 +134,8 @@ const DEFAULT_STATS = {
   guessDistribution: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
   points: 50,
   starterBonusGranted: true,
+  referralsCount: 0,
+  referralPointsEarned: 0,
 };
 
 function hashPassword(password: string): string {
@@ -156,20 +168,44 @@ interface DbUserRow {
   updated_at: string;
 }
 
+function getUserReferralTotals(username: string): { count: number; totalPoints: number } {
+  const row = db
+    .prepare(
+      'SELECT COUNT(*) AS cnt, COALESCE(SUM(reward_points), 0) AS total FROM referrals WHERE referrer_username = ?'
+    )
+    .get(username) as { cnt: number; total: number } | undefined;
+  return {
+    count: Math.max(0, Number(row?.cnt) || 0),
+    totalPoints: Math.max(0, Number(row?.total) || 0),
+  };
+}
+
 function formatUserAccount(row: DbUserRow) {
   let stats = { ...DEFAULT_STATS };
   let gameStates = {};
+  const referralTotals = getUserReferralTotals(row.username);
   try {
     const parsed = JSON.parse(row.stats_json) || {};
     const hadStarterBonus = Boolean(parsed.starterBonusGranted);
+    const storedReferralPoints = Math.max(0, Number(parsed.referralPointsEarned) || 0);
+    const uncreditedReferralDelta = Math.max(0, referralTotals.totalPoints - storedReferralPoints);
     const basePoints = Math.max(0, Number(parsed.points) || 0);
+    const nextPoints = (hadStarterBonus ? basePoints : basePoints + 50) + uncreditedReferralDelta;
+    const needsPersist =
+      !hadStarterBonus ||
+      uncreditedReferralDelta > 0 ||
+      Number(parsed.referralsCount || 0) !== referralTotals.count ||
+      storedReferralPoints !== referralTotals.totalPoints;
+
     stats = {
       ...DEFAULT_STATS,
       ...parsed,
-      points: hadStarterBonus ? basePoints : basePoints + 50,
+      points: nextPoints,
       starterBonusGranted: true,
+      referralsCount: referralTotals.count,
+      referralPointsEarned: referralTotals.totalPoints,
     };
-    if (!hadStarterBonus) {
+    if (needsPersist) {
       db.prepare('UPDATE users SET stats_json = ?, updated_at = ? WHERE username = ?').run(
         JSON.stringify(stats),
         new Date().toISOString(),
@@ -227,6 +263,13 @@ async function startServer() {
         return;
       }
 
+      const rawReferredBy =
+        typeof req.body?.referredBy === 'string' ? req.body.referredBy.trim() : '';
+      const validReferrerCandidate =
+        rawReferredBy.length >= 2 && rawReferredBy.length <= 30 && rawReferredBy !== rawUsername
+          ? rawReferredBy
+          : '';
+
       const now = new Date().toISOString();
       const passwordHash = hashPassword(password);
       const sessionToken = generateSessionToken();
@@ -240,6 +283,8 @@ async function startServer() {
               ? Math.max(0, Number(incomingStats.points) || 0)
               : Math.max(0, Number(incomingStats.points) || 0) + 50,
             starterBonusGranted: true,
+            referralsCount: 0,
+            referralPointsEarned: 0,
           }
         : DEFAULT_STATS;
       const initialGameStates = req.body?.gameStates && typeof req.body.gameStates === 'object' ? req.body.gameStates : {};
@@ -257,6 +302,26 @@ async function startServer() {
         now
       );
 
+      let referralApplied = false;
+      if (validReferrerCandidate) {
+        const referrerRow = db
+          .prepare('SELECT * FROM users WHERE username = ?')
+          .get(validReferrerCandidate) as DbUserRow | undefined;
+        if (referrerRow) {
+          const refInsert = db
+            .prepare(
+              `INSERT OR IGNORE INTO referrals (invitee_username, referrer_username, reward_points, created_at)
+               VALUES (?, ?, ?, ?)`
+            )
+            .run(rawUsername, referrerRow.username, REFERRAL_REWARD_POINTS, now);
+          if (refInsert.changes > 0) {
+            // Reconcile & persist the +100 hint points reward on the referrer's account
+            formatUserAccount(referrerRow);
+            referralApplied = true;
+          }
+        }
+      }
+
       const createdRow = db
         .prepare('SELECT * FROM users WHERE username = ?')
         .get(rawUsername) as DbUserRow;
@@ -264,6 +329,7 @@ async function startServer() {
       res.status(201).json({
         account: formatUserAccount(createdRow),
         token: sessionToken,
+        referralApplied,
       });
     } catch (err) {
       console.error('Signup error:', err);
@@ -365,9 +431,24 @@ async function startServer() {
         return;
       }
 
-      const updatedStats = req.body?.stats
-        ? { ...DEFAULT_STATS, ...req.body.stats }
-        : JSON.parse(userRow.stats_json);
+      const referralTotals = getUserReferralTotals(userRow.username);
+      const clientStats =
+        req.body?.stats && typeof req.body.stats === 'object' ? req.body.stats : null;
+      let updatedStats;
+      if (clientStats) {
+        const clientKnownRefPts = Math.max(0, Number(clientStats.referralPointsEarned) || 0);
+        const unseenRefBonus = Math.max(0, referralTotals.totalPoints - clientKnownRefPts);
+        updatedStats = {
+          ...DEFAULT_STATS,
+          ...clientStats,
+          points: Math.max(0, Number(clientStats.points) || 0) + unseenRefBonus,
+          starterBonusGranted: true,
+          referralsCount: referralTotals.count,
+          referralPointsEarned: referralTotals.totalPoints,
+        };
+      } else {
+        updatedStats = formatUserAccount(userRow).stats;
+      }
       const updatedGameStates =
         req.body?.gameStates && typeof req.body.gameStates === 'object'
           ? req.body.gameStates

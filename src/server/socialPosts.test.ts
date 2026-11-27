@@ -1,13 +1,126 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import Database from 'better-sqlite3';
 import {
   createXOAuth1Header,
   getSocialPostConfig,
   getTehranDateTime,
   publishDailySocialPost,
   type SocialPostConfig,
+  type SocialPostDatabase,
 } from './socialPosts';
+
+interface TestDatabaseHandle {
+  db: SocialPostDatabase;
+  close: () => void;
+}
+
+/**
+ * Creates an in-memory SQLite database when better-sqlite3 or node:sqlite is available,
+ * and falls back cleanly to a deterministic in-memory SQL test double so CI environments
+ * (e.g., Node 20 without native optionalDependencies) never fail with ERR_MODULE_NOT_FOUND.
+ */
+async function createTestDatabase(): Promise<TestDatabaseHandle> {
+  try {
+    const mod = await import('better-sqlite3');
+    const BetterSqlite3 = mod.default;
+    const db = new BetterSqlite3(':memory:');
+    return { db, close: () => db.close() };
+  } catch {
+    // Fall back to Node's built-in node:sqlite (Node 22+) when available
+  }
+
+  try {
+    const sqlite = await import('node:sqlite');
+    const db = new sqlite.DatabaseSync(':memory:');
+    return {
+      db: db as unknown as SocialPostDatabase,
+      close: () => db.close(),
+    };
+  } catch {
+    // Fall back to a strict in-memory SQL adapter for Node 20 CI runners
+  }
+
+  const runs = new Map<string, { date: string; post_text: string; created_at: string }>();
+  const deliveries = new Map<
+    string,
+    { date: string; target: string; status: string; error: string | null; updated_at: string }
+  >();
+
+  const db: SocialPostDatabase = {
+    exec() {},
+    prepare(sql: string) {
+      const norm = sql.replace(/\s+/g, ' ').trim();
+      return {
+        get(...params: unknown[]) {
+          if (norm.startsWith('SELECT post_text FROM social_post_runs WHERE date = ?')) {
+            const row = runs.get(String(params[0]));
+            return row ? { post_text: row.post_text } : undefined;
+          }
+          if (norm.startsWith('SELECT COUNT(*) AS count FROM social_post_runs')) {
+            return { count: runs.size };
+          }
+          throw new Error(`Unsupported test SQL get: ${norm}`);
+        },
+        all(...params: unknown[]) {
+          if (norm.startsWith('SELECT target, status, error FROM social_post_deliveries WHERE date = ?')) {
+            const date = String(params[0]);
+            return Array.from(deliveries.values())
+              .filter((r) => r.date === date)
+              .sort((a, b) => (a.target < b.target ? -1 : a.target > b.target ? 1 : 0))
+              .map(({ target, status, error }) => ({ target, status, error }));
+          }
+          throw new Error(`Unsupported test SQL all: ${norm}`);
+        },
+        run(...params: unknown[]) {
+          if (norm.startsWith('INSERT OR IGNORE INTO social_post_runs')) {
+            const [date, post_text, created_at] = params.map(String);
+            if (!runs.has(date)) {
+              runs.set(date, { date, post_text, created_at });
+              return { changes: 1 };
+            }
+            return { changes: 0 };
+          }
+          if (norm.startsWith('INSERT OR IGNORE INTO social_post_deliveries')) {
+            const [date, target, status, updated_at] = params.map(String);
+            const key = `${date}::${target}`;
+            if (!deliveries.has(key)) {
+              deliveries.set(key, { date, target, status, error: null, updated_at });
+              return { changes: 1 };
+            }
+            return { changes: 0 };
+          }
+          if (norm.startsWith("UPDATE social_post_deliveries SET status = 'sending'")) {
+            const [updated_at, date, target] = params.map(String);
+            const key = `${date}::${target}`;
+            const row = deliveries.get(key);
+            if (row && row.status === 'pending') {
+              row.status = 'sending';
+              row.error = null;
+              row.updated_at = updated_at;
+              return { changes: 1 };
+            }
+            return { changes: 0 };
+          }
+          if (norm.startsWith('UPDATE social_post_deliveries SET status = ?, error = ?, updated_at = ?')) {
+            const [status, error, updated_at, date, target, expectedStatus] = params;
+            const key = `${String(date)}::${String(target)}`;
+            const row = deliveries.get(key);
+            if (row && row.status === String(expectedStatus)) {
+              row.status = String(status);
+              row.error = error === null || error === undefined ? null : String(error);
+              row.updated_at = String(updated_at);
+              return { changes: 1 };
+            }
+            return { changes: 0 };
+          }
+          throw new Error(`Unsupported test SQL run: ${norm}`);
+        },
+      };
+    },
+  };
+
+  return { db, close: () => {} };
+}
 
 const config: SocialPostConfig = {
   geminiApiKey: 'gemini-key',
@@ -69,7 +182,7 @@ test('X OAuth 1.0 header is deterministic with a fixed nonce and timestamp', () 
 });
 
 test('daily dispatch persists one generated post and never repeats destination attempts', async () => {
-  const db = new Database(':memory:');
+  const { db, close } = await createTestDatabase();
   let generated = 0;
   const telegramChats: string[] = [];
   let xAttempts = 0;
@@ -107,12 +220,12 @@ test('daily dispatch persists one generated post and never repeats destination a
       1
     );
   } finally {
-    db.close();
+    close();
   }
 });
 
 test('daily dispatch works cleanly with only one Telegram chat configured', async () => {
-  const db = new Database(':memory:');
+  const { db, close } = await createTestDatabase();
   const singleChatConfig: SocialPostConfig = {
     ...config,
     telegramChatIds: ['@kalambaz_ir'],
@@ -138,6 +251,6 @@ test('daily dispatch works cleanly with only one Telegram chat configured', asyn
       { target: 'x', status: 'sent' },
     ]);
   } finally {
-    db.close();
+    close();
   }
 });

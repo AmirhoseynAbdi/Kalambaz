@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Delete, CornerDownLeft } from 'lucide-react';
 import { EvaluationResult } from '../types';
 import { normalizePersian } from '../game/wordleLogic';
@@ -13,6 +13,8 @@ interface PersianKeyboardProps {
   disabled?: boolean;
   darkMode?: boolean;
   highContrast?: boolean;
+  wordLength?: 4 | 5 | 6;
+  lastPressedKey?: { key: string; seq: number } | null;
 }
 
 // Persian keyboard layout rows (standard layout without standalone ژ since ژ is under ز)
@@ -40,6 +42,38 @@ const ALT_TO_BASE: { [alt: string]: string } = Object.entries(ALTERNATES_MAP).re
   {} as { [alt: string]: string }
 );
 
+// Theme color tokens matching each selected game length (4 = Emerald, 5 = Purple, 6 = Amber)
+const LENGTH_PULSE_THEMES: Record<
+  4 | 5 | 6,
+  {
+    border: string;
+    glow: string;
+    ring: string;
+    pulseRingClass: string;
+  }
+> = {
+  4: {
+    border: '#4ade80',
+    glow: 'rgba(34, 197, 94, 0.85)',
+    ring: 'rgba(74, 222, 128, 0.4)',
+    pulseRingClass: 'ring-2 ring-[#4ade80] border-[#4ade80]',
+  },
+  5: {
+    border: '#c084fc',
+    glow: 'rgba(168, 85, 247, 0.85)',
+    ring: 'rgba(192, 132, 252, 0.42)',
+    pulseRingClass: 'ring-2 ring-[#c084fc] border-[#c084fc]',
+  },
+  6: {
+    border: '#fbbf24',
+    glow: 'rgba(245, 158, 11, 0.85)',
+    ring: 'rgba(251, 191, 36, 0.42)',
+    pulseRingClass: 'ring-2 ring-[#fbbf24] border-[#fbbf24]',
+  },
+};
+
+const PULSE_DURATION_MS = 300;
+
 export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
   onChar,
   onEnter,
@@ -50,11 +84,60 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
   disabled = false,
   darkMode = true,
   highContrast = false,
+  wordLength = 5,
+  lastPressedKey = null,
 }) => {
   const [activePopoverKey, setActivePopoverKey] = useState<string | null>(null);
+  // Maps key identifier (Persian char, 'ENTER', or 'BACKSPACE') -> incrementing pulse counter
+  const [pulsingKeys, setPulsingKeys] = useState<Record<string, number>>({});
+  const pulseTimersRef = useRef<Record<string, number>>({});
   const longPressTimerRef = useRef<number | null>(null);
   const longPressTriggeredRef = useRef<boolean>(false);
   const keyboardRef = useRef<HTMLDivElement | null>(null);
+
+  const pulseTheme = LENGTH_PULSE_THEMES[wordLength] || LENGTH_PULSE_THEMES[5];
+
+  const triggerKeyPulse = useCallback((rawKey: string) => {
+    const normalized =
+      rawKey === 'ENTER' || rawKey === 'BACKSPACE'
+        ? rawKey
+        : ALT_TO_BASE[rawKey] || rawKey;
+
+    if (pulseTimersRef.current[normalized]) {
+      window.clearTimeout(pulseTimersRef.current[normalized]);
+    }
+
+    setPulsingKeys((prev) => ({
+      ...prev,
+      [normalized]: (prev[normalized] || 0) + 1,
+    }));
+
+    pulseTimersRef.current[normalized] = window.setTimeout(() => {
+      delete pulseTimersRef.current[normalized];
+      setPulsingKeys((prev) => {
+        if (!(normalized in prev)) return prev;
+        const next = { ...prev };
+        delete next[normalized];
+        return next;
+      });
+    }, PULSE_DURATION_MS);
+  }, []);
+
+  // Trigger visual pulse when physical keyboard keys are pressed from App.tsx
+  useEffect(() => {
+    if (!lastPressedKey || !lastPressedKey.key) return;
+    triggerKeyPulse(lastPressedKey.key);
+  }, [lastPressedKey, triggerKeyPulse]);
+
+  // Clean up any active key pulse timers on unmount
+  useEffect(() => {
+    return () => {
+      Object.values(pulseTimersRef.current).forEach((timerId) => {
+        window.clearTimeout(timerId);
+      });
+      pulseTimersRef.current = {};
+    };
+  }, []);
 
   useEffect(() => {
     if (!activePopoverKey) return;
@@ -147,18 +230,40 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
       return;
     }
     setActivePopoverKey(null);
+    triggerKeyPulse(char);
     onChar(char);
   };
+
+  const handleEnterClick = () => {
+    if (disabled) return;
+    triggerKeyPulse('ENTER');
+    onEnter();
+  };
+
+  const handleDeleteClick = () => {
+    if (disabled) return;
+    triggerKeyPulse('BACKSPACE');
+    onDelete();
+  };
+
+  const pulseCssVars = {
+    '--key-pulse-border': pulseTheme.border,
+    '--key-pulse-glow': pulseTheme.glow,
+    '--key-pulse-ring': pulseTheme.ring,
+  } as React.CSSProperties;
 
   const renderKey = (char: string, maxWidthClass: string) => {
     const alts = ALTERNATES_MAP[char];
     const hasAlts = !!alts;
+    const isPulsing = Boolean(pulsingKeys[char]);
 
     return (
       <div key={char} className={`relative flex-1 min-w-0 ${maxWidthClass}`}>
         <button
           type="button"
           disabled={disabled}
+          data-key={char}
+          data-pulsing={isPulsing ? 'true' : undefined}
           onPointerDown={() => handlePointerDown(char, hasAlts)}
           onPointerUp={handlePointerUpOrLeave}
           onPointerLeave={handlePointerUpOrLeave}
@@ -174,7 +279,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
           title={hasAlts ? `نگه دارید یا کلیک راست برای: ${alts.join(' ، ')}` : undefined}
           className={`w-full h-11 sm:h-12 rounded-lg sm:rounded-xl border text-sm sm:text-base font-bold flex flex-col items-center justify-center transition-colors active:scale-95 relative touch-manipulation select-none ${getKeyColor(
             char
-          )}`}
+          )} ${isPulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
           <span className="leading-none">{char}</span>
           {hasAlts && (
@@ -207,6 +312,7 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
                 type="button"
                 onClick={() => {
                   setActivePopoverKey(null);
+                  triggerKeyPulse(char);
                   onChar(alt);
                 }}
                 className={`w-9 h-9 rounded-lg font-extrabold text-sm flex items-center justify-center transition-colors text-white ${
@@ -224,12 +330,17 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
     );
   };
 
+  const isEnterPulsing = Boolean(pulsingKeys['ENTER']);
+  const isDeletePulsing = Boolean(pulsingKeys['BACKSPACE']);
+
   return (
     <div
       ref={keyboardRef}
       dir="ltr"
       role="region"
       aria-label="صفحه‌کلید فارسی کلمباز"
+      data-theme-length={wordLength}
+      style={pulseCssVars}
       className="w-full max-w-xl mx-auto px-1 sm:px-2 pt-0.5 pb-1.5 sm:pb-2 flex flex-col gap-1 sm:gap-1.5 select-none shrink-0"
     >
       {/* Row 1 (12 keys) */}
@@ -248,13 +359,15 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
         <button
           type="button"
           disabled={disabled}
-          onClick={onEnter}
+          data-key="ENTER"
+          data-pulsing={isEnterPulsing ? 'true' : undefined}
+          onClick={handleEnterClick}
           aria-label="ثبت حدس کلمه"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white ${
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative ${
             darkMode
               ? 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
               : 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
-          }`}
+          } ${isEnterPulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
           <span>ثبت</span>
           <CornerDownLeft className="w-3.5 h-3.5 shrink-0" />
@@ -266,13 +379,15 @@ export const PersianKeyboard: React.FC<PersianKeyboardProps> = ({
         <button
           type="button"
           disabled={disabled}
-          onClick={onDelete}
+          data-key="BACKSPACE"
+          data-pulsing={isDeletePulsing ? 'true' : undefined}
+          onClick={handleDeleteClick}
           aria-label="حذف حرف آخر"
-          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white ${
+          className={`flex-[1.5] max-w-[74px] h-11 sm:h-12 rounded-lg sm:rounded-xl border font-extrabold text-xs sm:text-sm flex items-center justify-center gap-1 transition-colors active:scale-95 touch-manipulation shrink-0 text-white relative ${
             darkMode
               ? 'bg-[#6b21a8] hover:bg-[#7e22ce] border-[#9333ea]'
               : 'bg-[#15803d] hover:bg-[#16a34a] border-[#22c55e]'
-          }`}
+          } ${isDeletePulsing ? `animate-key-pulse ${pulseTheme.pulseRingClass}` : ''}`}
         >
           <Delete className="w-4 h-4 shrink-0" />
           <span className="hidden sm:inline">حذف</span>

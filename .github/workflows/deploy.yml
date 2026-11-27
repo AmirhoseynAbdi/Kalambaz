@@ -17,16 +17,16 @@ jobs:
         with:
           fetch-depth: 0
 
-      - name: Set up Node.js 20
+      - name: Set up Node.js 22
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install dependencies
         run: npm install --legacy-peer-deps
 
       - name: Run unit tests
-        run: npx tsx --test src/game/wordleLogic.test.ts src/server/socialPosts.test.ts
+        run: npx tsx --test src/game/wordleLogic.test.ts src/utils/notifications.test.ts src/utils/referral.test.ts src/utils/streakCalendar.test.ts src/server/webPush.test.ts src/server/socialPosts.test.ts
 
       - name: Build production bundle (dist)
         run: |

@@ -3,7 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
 import { DAILY_WORDS, ELIGIBLE_WORDS } from './data/wordLists';
 import {
@@ -39,6 +39,12 @@ import {
   apiSyncUserData,
   setSessionToken,
 } from './utils/api';
+import {
+  extractReferralFromUrl,
+  getPendingReferrer,
+  setPendingReferrer,
+  clearPendingReferrer,
+} from './utils/referral';
 import { usePWAInstall } from './hooks/usePWAInstall';
 import {
   NotificationPermissionState,
@@ -214,6 +220,19 @@ export default function App() {
   const [currentGuess, setCurrentGuess] = useState<string>('');
   const [isShaking, setIsShaking] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [lastPressedKey, setLastPressedKey] = useState<{ key: string; seq: number } | null>(null);
+  const keyPulseSeqRef = useRef<number>(0);
+
+  // Pending referral inviter captured from ?ref=<username> or localStorage
+  const [pendingReferrer, setPendingReferrerState] = useState<string | null>(() => {
+    if (typeof window === 'undefined') return null;
+    const fromUrl = extractReferralFromUrl(window.location.search);
+    if (fromUrl) {
+      setPendingReferrer(fromUrl);
+      return fromUrl;
+    }
+    return getPendingReferrer();
+  });
 
   // Modals state: Login is NOT required to play; new devices only see the tutorial first
   const [isLoginOpen, setIsLoginOpen] = useState<boolean>(false);
@@ -367,7 +386,46 @@ export default function App() {
     };
   }, [applyAccountState]);
 
-  // Sync account updates to SQLite backend and localStorage cache
+  // Welcome toast when a guest arrives via a referral link (?ref=...)
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const fromUrl = extractReferralFromUrl(window.location.search);
+    if (fromUrl) {
+      setPendingReferrer(fromUrl);
+      setPendingReferrerState(fromUrl);
+      if (!currentAccount) {
+        showToast(`🎁 شما با دعوت «${fromUrl}» وارد کلمباز شدید!`);
+      }
+    }
+    // Only run once on initial mount
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Silently refresh profile from server when Stats or Profile modal opens to show newly earned referral rewards
+  useEffect(() => {
+    if ((!isStatsOpen && !isLoginOpen) || !currentAccount) return;
+    let active = true;
+    const prevRefPts = Number(stats.referralPointsEarned) || 0;
+    apiFetchCurrentUser()
+      .then((serverAccount) => {
+        if (!active || !serverAccount) return;
+        const newRefPts = Number(serverAccount.stats?.referralPointsEarned) || 0;
+        if (newRefPts > prevRefPts) {
+          const gained = newRefPts - prevRefPts;
+          showToast(
+            `🎉 دعوت موفق! +${gained.toLocaleString('fa-IR')} بذر هدیه به حساب شما اضافه شد!`
+          );
+        }
+        applyAccountState(serverAccount);
+      })
+      .catch(() => {});
+    return () => {
+      active = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isStatsOpen, isLoginOpen]);
+
+  // Sync account updates to SQLite/MySQL backend and localStorage cache
   const syncAccountData = useCallback(
     (updatedStats: PlayerStats, updatedGameStates: { [len: number]: DailyGameState }) => {
       if (!currentAccount) return;
@@ -384,10 +442,32 @@ export default function App() {
         setCurrentAccount(updatedAccount);
       } catch {}
 
-      // Persist asynchronously to SQLite backend
-      apiSyncUserData(updatedStats, updatedGameStates).catch(() => {});
+      // Persist asynchronously to backend and reconcile any server-credited referral bonuses
+      const knownRefPts = Number(updatedStats.referralPointsEarned) || 0;
+      apiSyncUserData(updatedStats, updatedGameStates)
+        .then((serverAccount) => {
+          if (!serverAccount?.stats) return;
+          const serverRefPts = Number(serverAccount.stats.referralPointsEarned) || 0;
+          if (serverRefPts > knownRefPts) {
+            const gained = serverRefPts - knownRefPts;
+            const mergedStats: PlayerStats = {
+              ...updatedStats,
+              points: Number(serverAccount.stats.points) || updatedStats.points,
+              referralsCount: serverAccount.stats.referralsCount,
+              referralPointsEarned: serverRefPts,
+            };
+            setStats(mergedStats);
+            setCurrentAccount((prev) =>
+              prev ? { ...prev, stats: mergedStats } : prev
+            );
+            showToast(
+              `🎉 دعوت موفق! +${gained.toLocaleString('fa-IR')} بذر هدیه به حساب شما اضافه شد!`
+            );
+          }
+        })
+        .catch(() => {});
     },
-    [currentAccount]
+    [currentAccount, showToast]
   );
 
   // Save active game state and player stats locally
@@ -696,7 +776,8 @@ export default function App() {
         stats,
         todayStr,
         isWin,
-        newGuesses.length
+        newGuesses.length,
+        currentLength
       );
       setStats(updatedStats);
 
@@ -771,14 +852,20 @@ export default function App() {
 
       if (e.key === 'Enter') {
         e.preventDefault();
+        keyPulseSeqRef.current += 1;
+        setLastPressedKey({ key: 'ENTER', seq: keyPulseSeqRef.current });
         handleEnter();
       } else if (e.key === 'Backspace') {
         e.preventDefault();
+        keyPulseSeqRef.current += 1;
+        setLastPressedKey({ key: 'BACKSPACE', seq: keyPulseSeqRef.current });
         handleDelete();
       } else if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
         const char = normalizePersian(e.key);
         if (/[\u0600-\u06FF]/.test(char)) {
           e.preventDefault();
+          keyPulseSeqRef.current += 1;
+          setLastPressedKey({ key: char, seq: keyPulseSeqRef.current });
           handleChar(char);
         }
       }
@@ -894,6 +981,8 @@ export default function App() {
                 disabled={currentGame.status !== 'playing'}
                 darkMode={settings.darkMode}
                 highContrast={settings.highContrast}
+                wordLength={currentLength}
+                lastPressedKey={lastPressedKey}
               />
             </div>
           </main>
@@ -921,6 +1010,14 @@ export default function App() {
         promptReason={loginPromptReason}
         guestStats={stats}
         guestGameStates={gameStates}
+        pendingReferrer={pendingReferrer}
+        referralsCount={stats.referralsCount || 0}
+        referralPointsEarned={stats.referralPointsEarned || 0}
+        onNotify={showToast}
+        onReferralConsumed={() => {
+          clearPendingReferrer();
+          setPendingReferrerState(null);
+        }}
       />
 
       <PreGameAdModal
@@ -942,10 +1039,13 @@ export default function App() {
         hardMode={settings.hardMode}
         darkMode={settings.darkMode}
         isLoggedIn={Boolean(currentAccount)}
+        username={currentAccount?.username}
+        gameStates={gameStates}
         onOpenLogin={() => {
           setLoginPromptReason('default');
           setIsLoginOpen(true);
         }}
+        onNotify={showToast}
       />
 
       <SettingsModal
