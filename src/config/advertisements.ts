@@ -8,6 +8,7 @@
 
 export interface AdItem {
   id: string;
+  variant?: 'ad' | 'social';
   title: string;           // عنوان تبلیغ
   tagline: string;         // متن توضیحی تبلیغ
   contactEmail?: string;   // ایمیل ارتباطی برای سفارش تبلیغات
@@ -87,15 +88,13 @@ export const BANNER_ADS: AdItem[] = [
     boxBgLight: 'bg-white border-[#d8b4fe]',
   },
   {
-    id: 'ad_order_3',
-    title: 'تبلیغات خود را به ما بسپارید',
-    tagline: 'جهت سفارش و رزرو تبلیغات در کلمباز با ما در تماس باشید:',
-    contactEmail: 'justhawkstuff@gmail.com',
-    ctaText: 'سفارش تبلیغات',
-    ctaUrl: 'mailto:justhawkstuff@gmail.com?subject=سفارش%20تبلیغات%20در%20کلمباز',
-    icon: '📣',
-    badgeText: 'پذیرش تبلیغات',
-    discountCode: 'justhawkstuff@gmail.com',
+    id: 'ad_social_follow',
+    variant: 'social',
+    title: 'کلمباز در تلگرام و ایکس',
+    tagline: 'چالش‌های روزانه، خبرهای تازه و دورهمی کلمبازها را دنبال کنید:',
+    ctaText: 'دنبال کردن',
+    icon: '🥦',
+    badgeText: 'شبکه‌های اجتماعی',
     bgGradientDark: 'bg-[#122645]',
     bgGradientLight: 'bg-[#dbeafe]',
     borderColor: 'border-[#38bdf8]',

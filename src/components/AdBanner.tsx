@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Mail } from 'lucide-react';
 import { BANNER_ADS, AdItem } from '../config/advertisements';
+import { KALAMBAZ_SOCIALS, TelegramIcon, XSocialIcon } from './SocialIcons';
 
 interface AdBannerProps {
   position?: 'top' | 'bottom' | 'sidebar';
@@ -78,6 +79,85 @@ export const AdBanner: React.FC<AdBannerProps> = ({
 
   // Sidebar layout on laptop/desktop
   if (position === 'sidebar') {
+    if (ad.variant === 'social') {
+      return (
+        <div
+          role="region"
+          aria-label="شبکه‌های اجتماعی کلمباز"
+          className={`w-full rounded-2xl border-2 p-3 transition-colors duration-200 relative overflow-hidden ${bgClasses}`}
+        >
+          <div className="flex items-center gap-1.5 mb-2">
+            <span
+              className={`text-[10px] font-extrabold px-2 py-0.5 rounded-md leading-none text-white ${btnClasses}`}
+            >
+              {ad.badgeText || 'شبکه‌های اجتماعی'}
+            </span>
+            <span className="text-[10px] font-bold opacity-85">
+              صفحات رسمی
+            </span>
+          </div>
+
+          <div className="text-center my-1.5">
+            <div
+              className={`w-10 h-10 mx-auto mb-1.5 rounded-xl border flex items-center justify-center text-xl shadow-inner ${boxClasses}`}
+            >
+              {ad.icon}
+            </div>
+            <h4
+              className={`text-xs xl:text-sm font-extrabold mb-0.5 ${
+                darkMode ? 'text-white' : 'text-[#0c4a6e]'
+              }`}
+            >
+              {ad.title}
+            </h4>
+            <p className="text-[11px] font-medium leading-snug px-1 opacity-90">
+              {ad.tagline}
+            </p>
+          </div>
+
+          <div className="mt-2.5 flex flex-col gap-1.5">
+            <a
+              href={KALAMBAZ_SOCIALS.telegram.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-full py-1.5 px-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-extrabold transition-all hover:opacity-95 ${
+                darkMode
+                  ? 'bg-[#0284c7] border-[#38bdf8]/70 text-white hover:bg-[#0369a1]'
+                  : 'bg-[#0284c7] border-[#0369a1] text-white hover:bg-[#0369a1]'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <TelegramIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>تلگرام</span>
+              </span>
+              <span dir="ltr" className="font-mono text-[11px] opacity-95">
+                {KALAMBAZ_SOCIALS.telegram.handle}
+              </span>
+            </a>
+
+            <a
+              href={KALAMBAZ_SOCIALS.x.url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className={`w-full py-1.5 px-2.5 rounded-xl border flex items-center justify-between gap-2 text-xs font-extrabold transition-all hover:opacity-95 ${
+                darkMode
+                  ? 'bg-[#111827] border-[#475569] text-white hover:bg-[#1f2937]'
+                  : 'bg-[#0f172a] border-[#0f172a] text-white hover:bg-[#1e293b]'
+              }`}
+            >
+              <span className="flex items-center gap-1.5">
+                <XSocialIcon className="w-3.5 h-3.5 shrink-0" />
+                <span>ایکس (X)</span>
+              </span>
+              <span dir="ltr" className="font-mono text-[11px] opacity-95">
+                {KALAMBAZ_SOCIALS.x.handle}
+              </span>
+            </a>
+          </div>
+        </div>
+      );
+    }
+
     return (
       <div
         role="region"
@@ -112,7 +192,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
           <p
             className={`text-[11px] font-medium leading-snug px-1 opacity-90`}
           >
-            جهت سفارش و رزرو تبلیغات در کلمباز با ما در تماس باشید:
+            {ad.tagline}
           </p>
         </div>
 
@@ -191,7 +271,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
               dir="ltr"
               className={`text-[9px] sm:text-[11px] font-mono font-bold truncate leading-tight ${emailClasses}`}
             >
-              {email}
+              {ad.variant === 'social' ? KALAMBAZ_SOCIALS.telegram.handle : email}
             </span>
           </div>
         </div>
@@ -216,7 +296,7 @@ export const AdBanner: React.FC<AdBannerProps> = ({
                 type="button"
                 role="tab"
                 aria-selected={isActive}
-                aria-label={`بنر تبلیغاتی ${idx + 1}`}
+                aria-label={`بنر ${idx + 1}`}
                 onClick={() => setActiveSlide(idx)}
                 className={`h-1.5 rounded-full transition-all duration-300 ${
                   isActive
@@ -229,14 +309,39 @@ export const AdBanner: React.FC<AdBannerProps> = ({
         </div>
 
         <div className="flex items-center gap-1 shrink-0">
-          <button
-            type="button"
-            onClick={handleClickAd}
-            className={`flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg text-white shadow-2xs transition-all duration-500 whitespace-nowrap ${btnClasses}`}
-          >
-            <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
-            <span>{ad.ctaText}</span>
-          </button>
+          {ad.variant === 'social' ? (
+            <>
+              <a
+                href={KALAMBAZ_SOCIALS.telegram.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`کانال تلگرام ${KALAMBAZ_SOCIALS.telegram.handle}`}
+                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg bg-[#0284c7] hover:bg-[#0369a1] text-white shadow-2xs transition-colors whitespace-nowrap"
+              >
+                <TelegramIcon className="w-3 h-3 shrink-0" />
+                <span>تلگرام</span>
+              </a>
+              <a
+                href={KALAMBAZ_SOCIALS.x.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                aria-label={`صفحه ایکس ${KALAMBAZ_SOCIALS.x.handle}`}
+                className="flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg bg-[#0f172a] hover:bg-[#1e293b] text-white shadow-2xs transition-colors whitespace-nowrap"
+              >
+                <XSocialIcon className="w-3 h-3 shrink-0" />
+                <span>X</span>
+              </a>
+            </>
+          ) : (
+            <button
+              type="button"
+              onClick={handleClickAd}
+              className={`flex items-center gap-1 text-[10px] sm:text-xs font-extrabold px-2 py-1 rounded-lg text-white shadow-2xs transition-all duration-500 whitespace-nowrap ${btnClasses}`}
+            >
+              <Mail className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+              <span>{ad.ctaText}</span>
+            </button>
+          )}
         </div>
       </div>
     </div>

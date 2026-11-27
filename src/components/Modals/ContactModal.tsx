@@ -1,5 +1,6 @@
 import React from 'react';
 import { X, Mail, Instagram, Copy, ExternalLink, Sparkles } from 'lucide-react';
+import { KALAMBAZ_SOCIALS, TelegramIcon, XSocialIcon } from '../SocialIcons';
 
 interface ContactModalProps {
   isOpen: boolean;
@@ -212,6 +213,118 @@ export const ContactModal: React.FC<ContactModalProps> = ({
                   }`}
                 >
                   <span>مشاهده صفحه</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* Telegram Card */}
+            <div
+              className={`p-3.5 rounded-xl border-2 transition-all ${
+                darkMode
+                  ? 'bg-[#122645]/85 border-[#38bdf8]/65'
+                  : 'bg-[#e0f2fe] border-[#38bdf8]'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm">
+                  <TelegramIcon
+                    className={`w-4 h-4 ${
+                      darkMode ? 'text-[#7dd3fc]' : 'text-[#0284c7]'
+                    }`}
+                  />
+                  <span>کانال تلگرام کلمباز:</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(KALAMBAZ_SOCIALS.telegram.handle, 'آیدی تلگرام')}
+                  className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-[#0c1b33]/85 border-[#38bdf8]/50 text-[#bae6fd] hover:text-white'
+                      : 'bg-white border-[#7dd3fc] text-[#0c4a6e] hover:bg-[#f0f9ff]'
+                  }`}
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>کپی آیدی</span>
+                </button>
+              </div>
+              <div
+                dir="ltr"
+                className="flex items-center justify-between gap-2 pt-1"
+              >
+                <a
+                  href={KALAMBAZ_SOCIALS.telegram.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-mono text-xs sm:text-sm font-extrabold underline underline-offset-2 ${
+                    darkMode ? 'text-[#7dd3fc] hover:text-white' : 'text-[#0369a1] hover:text-[#0c4a6e]'
+                  }`}
+                >
+                  {KALAMBAZ_SOCIALS.telegram.handle}
+                </a>
+                <a
+                  href={KALAMBAZ_SOCIALS.telegram.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#0284c7] hover:bg-[#0369a1] text-white flex items-center gap-1 shrink-0 transition-colors"
+                >
+                  <span>عضویت در کانال</span>
+                  <ExternalLink className="w-3 h-3" />
+                </a>
+              </div>
+            </div>
+
+            {/* X (Twitter) Card */}
+            <div
+              className={`p-3.5 rounded-xl border-2 transition-all ${
+                darkMode
+                  ? 'bg-[#181826]/90 border-[#64748b]/70'
+                  : 'bg-[#f1f5f9] border-[#94a3b8]'
+              }`}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2 font-extrabold text-xs sm:text-sm">
+                  <XSocialIcon
+                    className={`w-4 h-4 ${
+                      darkMode ? 'text-white' : 'text-[#0f172a]'
+                    }`}
+                  />
+                  <span>صفحه ایکس (X) کلمباز:</span>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => handleCopy(KALAMBAZ_SOCIALS.x.handle, 'آیدی ایکس')}
+                  className={`flex items-center gap-1 text-[11px] font-bold px-2 py-1 rounded-lg border transition-colors ${
+                    darkMode
+                      ? 'bg-[#0f172a]/85 border-[#475569] text-[#e2e8f0] hover:text-white'
+                      : 'bg-white border-[#94a3b8] text-[#0f172a] hover:bg-[#e2e8f0]'
+                  }`}
+                >
+                  <Copy className="w-3 h-3" />
+                  <span>کپی آیدی</span>
+                </button>
+              </div>
+              <div
+                dir="ltr"
+                className="flex items-center justify-between gap-2 pt-1"
+              >
+                <a
+                  href={KALAMBAZ_SOCIALS.x.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className={`font-mono text-xs sm:text-sm font-extrabold underline underline-offset-2 ${
+                    darkMode ? 'text-[#e2e8f0] hover:text-white' : 'text-[#0f172a] hover:text-[#334155]'
+                  }`}
+                >
+                  {KALAMBAZ_SOCIALS.x.handle}
+                </a>
+                <a
+                  href={KALAMBAZ_SOCIALS.x.url}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="px-2.5 py-1 rounded-lg text-[11px] font-extrabold bg-[#0f172a] hover:bg-[#1e293b] text-white flex items-center gap-1 shrink-0 transition-colors"
+                >
+                  <span>دنبال کردن</span>
                   <ExternalLink className="w-3 h-3" />
                 </a>
               </div>

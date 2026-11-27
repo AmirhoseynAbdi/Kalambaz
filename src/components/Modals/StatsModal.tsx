@@ -10,6 +10,7 @@ import {
 import { PlayerStats, WordEntry, EvaluationResult, GameStatus } from '../../types';
 import { calculateGuessPoints, HINT_COST } from '../../game/wordleLogic';
 import { GreenSeedIcon } from '../GreenSeedIcon';
+import { KALAMBAZ_SOCIALS, TelegramIcon, XSocialIcon } from '../SocialIcons';
 
 interface StatsModalProps {
   isOpen: boolean;
@@ -449,6 +450,43 @@ export const StatsModal: React.FC<StatsModalProps> = ({
               </button>
             </div>
           )}
+
+          {/* Social Channels Strip (Telegram & X) */}
+          <div
+            className={`mb-4 p-3 rounded-xl border-2 ${
+              darkMode
+                ? 'bg-[#1b132e] border-[#433266] text-[#f5f3ff]'
+                : 'bg-[#f0fdf4] border-[#86efac] text-[#14532d]'
+            }`}
+          >
+            <div className="text-[11px] font-extrabold text-center mb-2">
+              کلمباز را در تلگرام و ایکس دنبال کنید:
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <a
+                href={KALAMBAZ_SOCIALS.telegram.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-[#0284c7] hover:bg-[#0369a1] text-white text-xs font-extrabold transition-colors"
+              >
+                <TelegramIcon className="w-3.5 h-3.5 shrink-0" />
+                <span dir="ltr" className="font-mono text-[11px] truncate">
+                  {KALAMBAZ_SOCIALS.telegram.handle}
+                </span>
+              </a>
+              <a
+                href={KALAMBAZ_SOCIALS.x.url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 py-2 px-2.5 rounded-xl bg-[#0f172a] hover:bg-[#1e293b] text-white text-xs font-extrabold transition-colors"
+              >
+                <XSocialIcon className="w-3.5 h-3.5 shrink-0" />
+                <span dir="ltr" className="font-mono text-[11px] truncate">
+                  {KALAMBAZ_SOCIALS.x.handle}
+                </span>
+              </a>
+            </div>
+          </div>
 
           {/* Footer: Countdown & Share */}
           <div
