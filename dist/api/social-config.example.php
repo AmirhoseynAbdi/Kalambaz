@@ -1,11 +1,11 @@
 <?php
 /**
- * Kalambaz Daily Social Posts Configuration Template (cPanel)
+ * Kalambaz Admin & Social Posts Configuration Template (cPanel)
  *
  * SETUP ON CPANEL (keep out of GitHub):
  *   1. In cPanel File Manager, copy this file to:  public_html/api/social-config.php
- *   2. Fill in your regenerated credentials below.
- *   3. Add a daily Cron Job in cPanel:
+ *   2. Fill in your Telegram / X credentials (and optional ADMIN_PASSWORD).
+ *   3. Add a daily/hourly Cron Job in cPanel to dispatch scheduled posts:
  *        php /home/YOUR_CPANEL_USER/public_html/api/send-daily-social.php
  */
 
@@ -15,7 +15,11 @@ if (PHP_SAPI !== 'cli' && basename(__FILE__) === basename((string)($_SERVER['SCR
 }
 
 return [
-    // Google AI Studio Gemini API Key (https://aistudio.google.com/apikey)
+    // Optional dedicated password for https://kalambaz.ir/admin
+    // If left blank, you can claim your initial admin password directly from the /admin first-run screen.
+    'ADMIN_PASSWORD' => '',
+
+    // Optional: Google AI Studio Gemini API Key (not required when authoring/scheduling posts from /admin)
     'GEMINI_API_KEY' => '',
 
     // Telegram Bot Token from @BotFather (add bot as Admin with Post Messages permission)
@@ -31,7 +35,7 @@ return [
     'X_ACCESS_TOKEN' => '',
     'X_ACCESS_TOKEN_SECRET' => '',
 
-    // Public game URL appended to each generated post
+    // Public game URL optionally appended to posts
     'SOCIAL_POSTS_URL' => 'https://kalambaz.ir',
 
     // Optional: set a strong random secret ONLY if you want to trigger send-daily-social.php via HTTP header X-Social-Cron-Secret

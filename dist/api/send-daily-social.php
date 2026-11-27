@@ -16,6 +16,7 @@
  */
 
 require_once __DIR__ . '/social-posts-lib.php';
+require_once __DIR__ . '/admin-lib.php';
 
 $isCli = (PHP_SAPI === 'cli');
 
@@ -58,21 +59,6 @@ $args = $isCli && isset($argv) ? $argv : [];
 $dryRun = $isCli && in_array('--dry-run', $args, true);
 
 try {
-    $loaded = loadSocialPostConfig($mergedConfig);
-    if (!$loaded['ready']) {
-        $out = [
-            'ok' => false,
-            'disabled' => true,
-            'message' => 'Daily social posts are disabled; missing required credentials in api/social-config.php.',
-            'missing' => $loaded['missing'],
-        ];
-        if (!$isCli) {
-            http_response_code(503);
-        }
-        echo json_encode($out, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
-        exit(0);
-    }
-
     $dbHost = trim((string)($dbConfig['DB_HOST'] ?? 'localhost'));
     $dbPort = trim((string)($dbConfig['DB_PORT'] ?? '3306'));
     $dbName = trim((string)($dbConfig['DB_NAME'] ?? ''));
@@ -99,14 +85,32 @@ try {
         $engine = 'sqlite';
     }
 
-    $tehranTz = new DateTimeZone('Asia/Tehran');
-    $todayTehran = (new DateTimeImmutable('now', $tehranTz))->format('Y-m-d');
+    ensureAdminTablesPhp($pdo, $engine);
 
-    $result = dispatchDailySocialPostPhp($pdo, $engine, $loaded['config'], $todayTehran, $dryRun);
-    $summary = array_merge(['ok' => true, 'engine' => $engine], $result);
-    if (!empty($loaded['missing'])) {
-        $summary['unconfiguredOptionalOrSecondary'] = $loaded['missing'];
+    // 1. Always dispatch any manually scheduled posts created in /admin (does NOT require GEMINI_API_KEY)
+    $scheduledDispatched = $dryRun ? [] : dispatchDueScheduledSocialPostsPhp($pdo, $engine, $mergedConfig);
+
+    // 2. Optionally run Gemini daily auto-post only if GEMINI_API_KEY + at least one channel are configured
+    $loaded = loadSocialPostConfig($mergedConfig);
+    $geminiResult = null;
+    if ($loaded['ready'] && count($scheduledDispatched) === 0) {
+        $tehranTz = new DateTimeZone('Asia/Tehran');
+        $todayTehran = (new DateTimeImmutable('now', $tehranTz))->format('Y-m-d');
+        $geminiResult = dispatchDailySocialPostPhp($pdo, $engine, $loaded['config'], $todayTehran, $dryRun);
     }
+
+    $summary = [
+        'ok' => true,
+        'engine' => $engine,
+        'scheduledDispatchedCount' => count($scheduledDispatched),
+        'scheduledDispatched' => $scheduledDispatched,
+        'geminiAutoPost' => $geminiResult !== null ? $geminiResult : [
+            'skipped' => true,
+            'reason' => count($scheduledDispatched) > 0
+                ? 'Manual scheduled post(s) dispatched.'
+                : 'GEMINI_API_KEY not configured (manual/scheduled posts from /admin work independently).',
+        ],
+    ];
 
     echo json_encode($summary, JSON_UNESCAPED_UNICODE | JSON_PRETTY_PRINT) . PHP_EOL;
 } catch (Throwable $e) {

@@ -13,10 +13,34 @@
  */
 
 require_once __DIR__ . '/web-push-lib.php';
+require_once __DIR__ . '/admin-lib.php';
+
+$route = isset($_GET['route']) ? trim((string)$_GET['route'], '/') : '';
+if ($route === '') {
+    $uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
+    if (preg_match('#/api/(.*)$#', $uriPath, $matches)) {
+        $route = trim($matches[1], '/');
+    }
+}
+
+$isAdminRoute = ($route === 'admin' || strpos($route, 'admin/') === 0);
 
 header('Content-Type: application/json; charset=utf-8');
-header('Access-Control-Allow-Origin: *');
-header('Access-Control-Allow-Methods: GET, POST, PUT, OPTIONS');
+if (!$isAdminRoute) {
+    header('Access-Control-Allow-Origin: *');
+} else {
+    $origin = $_SERVER['HTTP_ORIGIN'] ?? '';
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    if ($origin !== '' && $host !== '') {
+        $parsedOrigin = parse_url($origin);
+        $originHost = ($parsedOrigin['host'] ?? '') . (isset($parsedOrigin['port']) ? ':' . $parsedOrigin['port'] : '');
+        if ($originHost !== '' && strcasecmp($originHost, $host) === 0) {
+            header('Access-Control-Allow-Origin: ' . $origin);
+            header('Vary: Origin');
+        }
+    }
+}
+header('Access-Control-Allow-Methods: GET, POST, PUT, DELETE, OPTIONS');
 header('Access-Control-Allow-Headers: Content-Type, Authorization');
 
 if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
@@ -221,18 +245,11 @@ function formatUserAccount(array $row, ?PDO $pdo = null): array {
 try {
     [$pdo, $engine] = getDatabaseConnection();
     ensurePushTables($pdo, $engine);
+    ensureAdminTablesPhp($pdo, $engine);
 } catch (Throwable $e) {
     sendJson(500, [
         'error' => 'خطا در اتصال به دیتابیس هاست. لطفاً تنظیمات فایل api/db-config.php را بررسی کنید.',
     ]);
-}
-
-$route = isset($_GET['route']) ? trim((string)$_GET['route'], '/') : '';
-if ($route === '') {
-    $uriPath = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH) ?: '';
-    if (preg_match('#/api/(.*)$#', $uriPath, $matches)) {
-        $route = trim($matches[1], '/');
-    }
 }
 
 $method = $_SERVER['REQUEST_METHOD'] ?? 'GET';
@@ -240,6 +257,10 @@ $rawBody = file_get_contents('php://input');
 $body = json_decode($rawBody ?: '{}', true);
 if (!is_array($body)) {
     $body = [];
+}
+
+if (handleAdminAndConfigRoutes($pdo, $engine, $route, $method, $body)) {
+    exit;
 }
 
 // 1. GET /api/health
