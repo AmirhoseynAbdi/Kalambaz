@@ -6,8 +6,6 @@ import {
   User,
   CheckCircle2,
   Mail,
-  Lightbulb,
-  Lock,
 } from 'lucide-react';
 import { DailyGameState } from '../types';
 import { calculateGuessPoints } from '../game/wordleLogic';
@@ -66,7 +64,7 @@ export const Header: React.FC<HeaderProps> = ({
   hardMode,
   gameStates,
 }) => {
-  const iconBtnClass = `w-8 h-8 sm:w-10 sm:h-10 rounded-xl flex items-center justify-center transition-colors active:scale-95 shrink-0 ${
+  const iconBtnClass = `w-7 h-7 sm:w-9 sm:h-9 rounded-lg sm:rounded-xl flex items-center justify-center transition-colors active:scale-95 shrink-0 ${
     darkMode
       ? 'bg-[#2e224b] text-[#d8c8ff] hover:bg-[#3c2d62] hover:text-white'
       : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]'
@@ -76,18 +74,18 @@ export const Header: React.FC<HeaderProps> = ({
     <header className="relative z-10 w-full max-w-7xl mx-auto px-1.5 sm:px-4 lg:px-6 pt-1.5 sm:pt-2 pb-1 shrink-0">
       {/* Main Top Bar */}
       <div
-        className={`flex items-center justify-between gap-1 sm:gap-2.5 px-2 sm:px-3.5 py-1.5 sm:py-2 rounded-2xl transition-colors ${
+        className={`flex items-center justify-between gap-1 sm:gap-2 px-1.5 sm:px-3 py-1.5 sm:py-2 rounded-2xl transition-colors ${
           darkMode
             ? 'bg-[#211836] text-[#f5f3ff] shadow-md shadow-black/25'
             : 'bg-white text-[#14532d] shadow-md shadow-emerald-950/6'
         }`}
       >
         {/* Right Zone (RTL Start): Brand Identity */}
-        <div className="flex items-center gap-1.5 sm:gap-2 min-w-0 shrink-0">
-          <div className="flex items-center gap-1.5">
-            <span className="text-lg sm:text-2xl select-none">🥦</span>
+        <div className="flex items-center gap-1 sm:gap-2 min-w-0 shrink-0">
+          <div className="flex items-center gap-1 sm:gap-1.5">
+            <span className="text-base sm:text-2xl select-none">🥦</span>
             <h1
-              className={`text-base sm:text-2xl font-black tracking-tight font-['Lalezar',sans-serif] leading-none whitespace-nowrap ${
+              className={`text-sm sm:text-2xl font-black tracking-tight font-['Lalezar',sans-serif] leading-none whitespace-nowrap ${
                 darkMode ? 'text-[#4ade80]' : 'text-[#6b21a8]'
               }`}
             >
@@ -162,8 +160,8 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </div>
 
-        {/* Left Zone (RTL End): Streak, Seeds, Green Hint, Help, Contact Us, Settings, Profile */}
-        <div className="flex items-center gap-[3px] sm:gap-1.5 shrink-0">
+        {/* Left Zone (RTL End): Streak, Unified Hint+Seeds, Help, Contact Us, Settings, Profile */}
+        <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
           {/* Daily Streak Viewing Button (Tiered: Green, Silver, Gold, Diamond, Plasma) */}
           {(() => {
             const streakTier: StreakTier = getStreakTier(streak);
@@ -205,79 +203,55 @@ export const Header: React.FC<HeaderProps> = ({
                 type="button"
                 onClick={onOpenStats}
                 aria-label={`مشاهده استریک و آمار: ${streak} روز${tierLabel ? ` (${tierLabel})` : ''}`}
-                className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-all active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${streakBtnStyle}`}
+                className={`h-7 sm:h-9 flex items-center gap-0.5 px-1.5 sm:px-2 rounded-lg sm:rounded-xl transition-all active:scale-95 text-[10px] sm:text-xs font-extrabold shrink-0 tabular-nums ${streakBtnStyle}`}
                 title={
                   tierLabel
                     ? `استریک ${tierLabel}: ${streak.toLocaleString('fa-IR')} روز (مشاهده تقویم و آمار)`
                     : 'مشاهده استریک روزانه و آمار'
                 }
               >
-                <Flame className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${flameClass}`} />
+                <Flame className={`w-3 h-3 sm:w-3.5 sm:h-3.5 shrink-0 ${flameClass}`} />
                 <span>{streak.toLocaleString('fa-IR')}</span>
               </button>
             );
           })()}
 
-          {/* Player Seeds Display Badge */}
-          <button
-            type="button"
-            onClick={onOpenStats}
-            aria-label={`بذرهای شما: ${points} بذر`}
-            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 tabular-nums ${
-              darkMode
-                ? 'bg-[#16422b] text-[#bbf7d0] hover:bg-[#1c5638]'
-                : 'bg-[#ede9fe] text-[#581c87] hover:bg-[#ddd6fe]'
-            }`}
-            title={`بذرهای شما: ${points.toLocaleString('fa-IR')} بذر (هر برد بر اساس تعداد حدس بین ${calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا ${calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر جایزه دارد)`}
-          >
-            <GreenSeedIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-            <span>{points.toLocaleString('fa-IR')}</span>
-          </button>
-
-          {/* Green-Letter Hint Button (locked until login) */}
+          {/* Compact Unified Hint + Seeds Balance Button (No Lightbulb Icon) */}
           <button
             type="button"
             onClick={onUseHint}
             aria-label={
               username
-                ? `راهنمای حرف سبز (${hintCost} بذر)`
-                : 'راهنمای حرف سبز (نیاز به ورود به حساب کاربری)'
+                ? `راهنمای حرف سبز — موجودی شما: ${points} بذر (هزینه هر راهنما: ${hintCost} بذر)`
+                : `راهنمای حرف سبز (نیاز به ورود) — موجودی شما: ${points} بذر`
             }
-            className={`h-8 sm:h-10 flex items-center gap-0.5 sm:gap-1 px-2 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-[11px] sm:text-xs font-extrabold shrink-0 ${
+            className={`h-7 sm:h-9 flex items-center gap-1 pr-1.5 pl-1 sm:pr-2 sm:pl-1 rounded-lg sm:rounded-xl transition-all active:scale-95 text-[10px] sm:text-xs font-extrabold shrink-0 ${
               canUseHint
                 ? darkMode
                   ? 'bg-[#15803d] hover:bg-[#16a34a] text-white shadow-sm'
                   : 'bg-[#7e22ce] hover:bg-[#6b21a8] text-white shadow-sm'
                 : darkMode
-                ? 'bg-[#2e224b] text-[#a799c4] hover:bg-[#3a2b5e] hover:text-white'
-                : 'bg-[#dff5e7] text-[#166534] hover:bg-[#c5ecd4]'
+                ? 'bg-[#2e224b] text-[#d8c8ff] hover:bg-[#3c2d62] hover:text-white'
+                : 'bg-[#ede9fe] text-[#581c87] hover:bg-[#ddd6fe]'
             }`}
             title={
               username
-                ? `دریافت راهنمای یک حرف سبز کشف‌نشده (هزینه: ${hintCost.toLocaleString('fa-IR')} بذر)`
-                : 'برای استفاده از راهنمای حرف سبز ابتدا وارد حساب کاربری شوید'
+                ? `دریافت راهنمای یک حرف سبز (هزینه: ${hintCost.toLocaleString('fa-IR')} بذر • موجودی شما: ${points.toLocaleString('fa-IR')} بذر • هر برد بین ${calculateGuessPoints(6, true).toLocaleString('fa-IR')} تا ${calculateGuessPoints(1, true).toLocaleString('fa-IR')} بذر جایزه دارد)`
+                : `موجودی شما: ${points.toLocaleString('fa-IR')} بذر — برای استفاده از راهنمای حرف سبز ابتدا وارد حساب کاربری شوید`
             }
           >
-            {username ? (
-              <Lightbulb
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                  canUseHint
-                    ? 'text-[#fde047] fill-[#fde047]'
-                    : darkMode
-                    ? 'text-[#a78bfa]'
-                    : 'text-[#15803d]'
-                }`}
-              />
-            ) : (
-              <Lock
-                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                  darkMode ? 'text-[#a78bfa]' : 'text-[#15803d]'
-                }`}
-              />
-            )}
-            <span className="hidden sm:inline">راهنما</span>
-            <span className="text-[10px] opacity-90 font-mono">
-              ({hintCost.toLocaleString('fa-IR')})
+            <span>راهنما</span>
+            <span
+              className={`inline-flex items-center gap-0.5 px-1 sm:px-1.5 py-0.5 rounded-md text-[9px] sm:text-[11px] font-black tabular-nums ${
+                canUseHint
+                  ? 'bg-black/22 text-white'
+                  : darkMode
+                  ? 'bg-[#1a132c] text-[#86efac]'
+                  : 'bg-white/85 text-[#14532d]'
+              }`}
+            >
+              <GreenSeedIcon className="w-2.5 h-2.5 sm:w-3 sm:h-3 shrink-0" />
+              <span>{points.toLocaleString('fa-IR')}</span>
             </span>
           </button>
 
@@ -289,7 +263,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={iconBtnClass}
             title="راهنمای کلمباز"
           >
-            <HelpCircle className="w-4 h-4 sm:w-5 sm:h-5" />
+            <HelpCircle className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* Contact Us Button */}
@@ -297,14 +271,14 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenContact}
             aria-label="تماس با ما"
-            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1 sm:px-2.5 rounded-xl transition-colors active:scale-95 text-xs font-extrabold shrink-0 ${
+            className={`h-7 sm:h-9 w-7 sm:w-auto flex items-center justify-center gap-1 sm:px-2 rounded-lg sm:rounded-xl transition-colors active:scale-95 text-xs font-extrabold shrink-0 ${
               darkMode
                 ? 'bg-[#2e224b] text-[#d8c8ff] hover:bg-[#3c2d62] hover:text-white'
                 : 'bg-[#dff5e7] text-[#14532d] hover:bg-[#c5ecd4]'
             }`}
             title="تماس با ما و سفارش تبلیغات"
           >
-            <Mail className="w-4 h-4 shrink-0" />
+            <Mail className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
             <span className="hidden lg:inline">تماس با ما</span>
           </button>
 
@@ -316,7 +290,7 @@ export const Header: React.FC<HeaderProps> = ({
             className={iconBtnClass}
             title="تنظیمات"
           >
-            <Settings className="w-4 h-4 sm:w-5 sm:h-5" />
+            <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
           </button>
 
           {/* User Account / Profile */}
@@ -324,15 +298,15 @@ export const Header: React.FC<HeaderProps> = ({
             type="button"
             onClick={onOpenProfile}
             aria-label={username ? `حساب کاربری ${username}` : 'ورود به حساب کاربری'}
-            className={`h-8 sm:h-10 w-8 sm:w-auto flex items-center justify-center gap-1.5 sm:px-3 rounded-xl active:scale-95 transition-colors text-xs font-extrabold shrink-0 shadow-sm ${
+            className={`h-7 sm:h-9 w-7 sm:w-auto flex items-center justify-center gap-1 sm:px-2.5 rounded-lg sm:rounded-xl active:scale-95 transition-colors text-xs font-extrabold shrink-0 shadow-sm ${
               darkMode
                 ? 'bg-[#7e22ce] hover:bg-[#9333ea] text-white'
                 : 'bg-[#15803d] hover:bg-[#166534] text-white'
             }`}
             title={username ? `حساب: ${username}` : 'ورود / ثبت‌نام'}
           >
-            <User className="w-4 h-4 shrink-0" />
-            <span className="hidden sm:inline max-w-[76px] truncate">
+            <User className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+            <span className="hidden sm:inline max-w-[72px] truncate">
               {username || 'ورود'}
             </span>
           </button>

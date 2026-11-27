@@ -22,6 +22,11 @@ import {
   publishTelegramPost,
   publishXPost,
 } from './src/server/socialPosts.ts';
+import {
+  dispatchDueScheduledSocialPosts,
+  ensureAdminSchema,
+  registerAdminRoutes,
+} from './src/server/adminRoutes.ts';
 
 dotenv.config({ path: '.env.local' });
 dotenv.config();
@@ -87,6 +92,7 @@ db.exec(`
   CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_username);
 `);
 ensureSocialPostSchema(db);
+ensureAdminSchema(db);
 
 function getOrCreateServerVapidKeys(): VapidKeyPair {
   const subject = (process.env.VAPID_SUBJECT || 'mailto:justhawkstuff@gmail.com').trim();
@@ -650,6 +656,12 @@ async function startServer() {
     }
   });
 
+  registerAdminRoutes(app, db, {
+    hashPassword,
+    verifyPassword,
+    getOrCreateVapidKeys: getOrCreateServerVapidKeys,
+  });
+
   // Vite middleware in development, static dist in production
   if (process.env.NODE_ENV !== 'production') {
     const { createServer: createViteServer } = await import('vite');
@@ -670,6 +682,28 @@ async function startServer() {
     console.log(`Kalabaz server with SQLite database running on http://0.0.0.0:${PORT}`);
   });
 
+  // Periodic dispatcher for manually scheduled social posts from /admin (no Gemini key required)
+  let scheduledRunning = false;
+  const runScheduledPosts = async () => {
+    if (scheduledRunning) return;
+    scheduledRunning = true;
+    try {
+      const dispatched = await dispatchDueScheduledSocialPosts(db);
+      if (dispatched.length > 0) {
+        console.info(`Dispatched ${dispatched.length} scheduled social post(s).`);
+      }
+    } catch (error) {
+      console.error(
+        'Scheduled social post dispatch failed:',
+        error instanceof Error ? error.message : 'Unknown error'
+      );
+    } finally {
+      scheduledRunning = false;
+    }
+  };
+  void runScheduledPosts();
+  setInterval(() => void runScheduledPosts(), 60 * 1000);
+
   let socialPostConfig;
   let missing: string[] = [];
   try {
@@ -678,7 +712,7 @@ async function startServer() {
     missing = resolved.missing;
   } catch (error) {
     console.error(
-      'Daily social posts are disabled due to invalid configuration:',
+      'Daily Gemini social posts are disabled due to invalid configuration:',
       error instanceof Error ? error.message : 'Unknown error'
     );
     return;
@@ -686,8 +720,8 @@ async function startServer() {
   if (!socialPostConfig) {
     console.info(
       missing.length
-        ? `Daily social posts are disabled; missing environment variables: ${missing.join(', ')}`
-        : 'Daily social posts are disabled.'
+        ? `Daily Gemini auto-posts are disabled (manual/scheduled posts via /admin remain active); missing: ${missing.join(', ')}`
+        : 'Daily Gemini auto-posts are disabled.'
     );
     return;
   }

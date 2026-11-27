@@ -5,6 +5,7 @@
 
 import React, { useState, useEffect, useCallback, useMemo, useRef } from 'react';
 import confetti from 'canvas-confetti';
+import { Megaphone, X, ExternalLink } from 'lucide-react';
 import { DAILY_WORDS, ELIGIBLE_WORDS } from './data/wordLists';
 import {
   GameStatus,
@@ -39,6 +40,10 @@ import {
   apiSyncUserData,
   setSessionToken,
 } from './utils/api';
+import {
+  fetchPublicGameConfig,
+  SiteAnnouncement,
+} from './utils/adminApi';
 import {
   extractReferralFromUrl,
   getPendingReferrer,
@@ -258,6 +263,63 @@ export default function App() {
   const [notificationsEnabled, setNotificationsEnabled] = useState<boolean>(() =>
     isDailyNotificationEnabled()
   );
+
+  // Live server announcement banner & daily word overrides
+  const [siteAnnouncement, setSiteAnnouncement] = useState<SiteAnnouncement | null>(null);
+  const [announcementDismissed, setAnnouncementDismissed] = useState<boolean>(false);
+
+  useEffect(() => {
+    let active = true;
+    fetchPublicGameConfig(todayStr).then((cfg) => {
+      if (!active || !cfg) return;
+
+      if (cfg.announcement?.enabled && cfg.announcement.message) {
+        setSiteAnnouncement(cfg.announcement);
+      }
+
+      if (cfg.wordOverrides && Object.keys(cfg.wordOverrides).length > 0) {
+        setGameStates((prev) => {
+          let changed = false;
+          const next = { ...prev };
+          ([4, 5, 6] as const).forEach((len) => {
+            const overrideWord = cfg.wordOverrides[len];
+            if (!overrideWord || Array.from(overrideWord).length !== len) return;
+            const existing = next[len];
+            if (existing && existing.targetWord?.word === overrideWord) return;
+            changed = true;
+            const overrideTarget = {
+              id: `override_${todayStr}_${len}`,
+              word: overrideWord,
+            };
+            // Check if saved local state already matches the overridden word
+            try {
+              const saved = localStorage.getItem(`kalabaz_state_${len}_${todayStr}`);
+              if (saved) {
+                const parsed: DailyGameState = JSON.parse(saved);
+                if (parsed.targetWord?.word === overrideWord) {
+                  next[len] = { ...parsed, targetWord: overrideTarget };
+                  return;
+                }
+              }
+            } catch {}
+            next[len] = {
+              wordLength: len,
+              targetWord: overrideTarget,
+              guesses: [],
+              evaluations: [],
+              status: 'playing',
+              hardMode: existing?.hardMode ?? false,
+              dateKey: todayStr,
+            };
+          });
+          return changed ? next : prev;
+        });
+      }
+    });
+    return () => {
+      active = false;
+    };
+  }, [todayStr]);
 
   // Active game state
   const currentGame = gameStates[currentLength] || {
@@ -943,6 +1005,55 @@ export default function App() {
 
           {/* Center Column: Game Board & Persian Keyboard */}
           <main className="flex-1 flex flex-col items-center justify-between w-full max-w-xl mx-auto h-full min-h-0">
+            {/* Live Admin Announcement Banner */}
+            {siteAnnouncement?.enabled && siteAnnouncement.message && !announcementDismissed && (
+              <div
+                className={`w-full shrink-0 mb-1 px-3 py-2 rounded-xl flex items-center justify-between gap-2 text-xs font-bold ${
+                  siteAnnouncement.tone === 'purple'
+                    ? settings.darkMode
+                      ? 'bg-purple-500/20 text-purple-200'
+                      : 'bg-purple-100 text-purple-900'
+                    : siteAnnouncement.tone === 'amber'
+                      ? settings.darkMode
+                        ? 'bg-amber-500/20 text-amber-200'
+                        : 'bg-amber-100 text-amber-900'
+                      : siteAnnouncement.tone === 'sky'
+                        ? settings.darkMode
+                          ? 'bg-sky-500/20 text-sky-200'
+                          : 'bg-sky-100 text-sky-900'
+                        : settings.darkMode
+                          ? 'bg-emerald-500/20 text-emerald-200'
+                          : 'bg-emerald-100 text-emerald-900'
+                }`}
+              >
+                <div className="flex items-center gap-2 min-w-0">
+                  <Megaphone className="w-3.5 h-3.5 shrink-0" />
+                  <span className="truncate">{siteAnnouncement.message}</span>
+                </div>
+                <div className="flex items-center gap-1.5 shrink-0">
+                  {siteAnnouncement.linkUrl && siteAnnouncement.linkUrl.startsWith('https://') && (
+                    <a
+                      href={siteAnnouncement.linkUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-lg bg-black/15 hover:bg-black/25 transition-colors text-[11px]"
+                    >
+                      <span>مشاهده</span>
+                      <ExternalLink className="w-3 h-3" />
+                    </a>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() => setAnnouncementDismissed(true)}
+                    className="p-1 rounded-lg hover:bg-black/15 transition-colors"
+                    aria-label="بستن اطلاعیه"
+                  >
+                    <X className="w-3.5 h-3.5" />
+                  </button>
+                </div>
+              </div>
+            )}
+
             {/* Mobile Compact Top Ad Strip (only on < lg) */}
             <div className="lg:hidden w-full shrink-0">
               <AdBanner
