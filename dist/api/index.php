@@ -30,6 +30,8 @@ function sendJson(int $status, array $payload): void {
     exit;
 }
 
+const REFERRAL_REWARD_POINTS = 100;
+
 function getDefaultStats(): array {
     return [
         'gamesPlayed' => 0,
@@ -47,6 +49,8 @@ function getDefaultStats(): array {
         ],
         'points' => 50,
         'starterBonusGranted' => true,
+        'referralsCount' => 0,
+        'referralPointsEarned' => 0,
     ];
 }
 
@@ -80,6 +84,16 @@ function getDatabaseConnection(): array {
             ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
         ");
 
+        $pdo->exec("
+            CREATE TABLE IF NOT EXISTS referrals (
+                invitee_username VARCHAR(64) PRIMARY KEY,
+                referrer_username VARCHAR(64) NOT NULL,
+                reward_points INT NOT NULL DEFAULT 100,
+                created_at VARCHAR(40) NOT NULL,
+                INDEX idx_referrals_referrer (referrer_username)
+            ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
+        ");
+
         return [$pdo, 'mysql'];
     }
 
@@ -110,6 +124,13 @@ function getDatabaseConnection(): array {
             updated_at TEXT NOT NULL
         );
         CREATE INDEX IF NOT EXISTS idx_users_session_token ON users(session_token);
+        CREATE TABLE IF NOT EXISTS referrals (
+            invitee_username TEXT PRIMARY KEY,
+            referrer_username TEXT NOT NULL,
+            reward_points INTEGER NOT NULL DEFAULT 100,
+            created_at TEXT NOT NULL
+        );
+        CREATE INDEX IF NOT EXISTS idx_referrals_referrer ON referrals(referrer_username);
     ");
 
     return [$pdo, 'sqlite'];
@@ -137,17 +158,41 @@ function getBearerToken(): string {
     return '';
 }
 
+function getUserReferralTotals(?PDO $pdo, string $username): array {
+    if ($pdo === null || $username === '') {
+        return ['count' => 0, 'totalPoints' => 0];
+    }
+    $stmt = $pdo->prepare('SELECT COUNT(*) AS cnt, COALESCE(SUM(reward_points), 0) AS total FROM referrals WHERE referrer_username = ?');
+    $stmt->execute([$username]);
+    $row = $stmt->fetch();
+    return [
+        'count' => max(0, (int)($row['cnt'] ?? 0)),
+        'totalPoints' => max(0, (int)($row['total'] ?? 0)),
+    ];
+}
+
 function formatUserAccount(array $row, ?PDO $pdo = null): array {
     $defaultStats = getDefaultStats();
     $decodedStats = json_decode($row['stats_json'] ?? '{}', true);
+    $refTotals = getUserReferralTotals($pdo, (string)($row['username'] ?? ''));
+
     if (is_array($decodedStats)) {
         $hadStarterBonus = !empty($decodedStats['starterBonusGranted']);
+        $storedRefPoints = max(0, (int)($decodedStats['referralPointsEarned'] ?? 0));
+        $uncreditedRefDelta = max(0, $refTotals['totalPoints'] - $storedRefPoints);
         $basePoints = max(0, (int)($decodedStats['points'] ?? 0));
         $stats = array_replace_recursive($defaultStats, $decodedStats);
-        $stats['points'] = $hadStarterBonus ? $basePoints : ($basePoints + 50);
+        $stats['points'] = ($hadStarterBonus ? $basePoints : ($basePoints + 50)) + $uncreditedRefDelta;
         $stats['starterBonusGranted'] = true;
+        $stats['referralsCount'] = $refTotals['count'];
+        $stats['referralPointsEarned'] = $refTotals['totalPoints'];
 
-        if (!$hadStarterBonus && $pdo !== null && !empty($row['username'])) {
+        $needsPersist = !$hadStarterBonus
+            || $uncreditedRefDelta > 0
+            || (int)($decodedStats['referralsCount'] ?? 0) !== $refTotals['count']
+            || $storedRefPoints !== $refTotals['totalPoints'];
+
+        if ($needsPersist && $pdo !== null && !empty($row['username'])) {
             $upd = $pdo->prepare('UPDATE users SET stats_json = ?, updated_at = ? WHERE username = ?');
             $upd->execute([
                 json_encode($stats, JSON_UNESCAPED_UNICODE),
@@ -157,6 +202,9 @@ function formatUserAccount(array $row, ?PDO $pdo = null): array {
         }
     } else {
         $stats = $defaultStats;
+        $stats['referralsCount'] = $refTotals['count'];
+        $stats['referralPointsEarned'] = $refTotals['totalPoints'];
+        $stats['points'] = 50 + $refTotals['totalPoints'];
     }
 
     $decodedStates = json_decode($row['game_states_json'] ?? '{}', true);
@@ -226,6 +274,14 @@ if ($route === 'auth/signup' && $method === 'POST') {
         sendJson(409, ['error' => 'این نام کاربری قبلاً ثبت شده است. لطفاً وارد شوید.']);
     }
 
+    $rawReferredBy = isset($body['referredBy']) && is_string($body['referredBy']) ? trim($body['referredBy']) : '';
+    $validReferrerCandidate = (
+        $rawReferredBy !== ''
+        && mb_strlen($rawReferredBy, 'UTF-8') >= 2
+        && mb_strlen($rawReferredBy, 'UTF-8') <= 30
+        && $rawReferredBy !== $username
+    ) ? $rawReferredBy : '';
+
     $now = gmdate('Y-m-d\TH:i:s\Z');
     $passwordHash = password_hash($password, PASSWORD_DEFAULT);
     $sessionToken = bin2hex(random_bytes(32));
@@ -237,6 +293,8 @@ if ($route === 'auth/signup' && $method === 'POST') {
         $initialStats = array_replace_recursive($defaultStats, $body['stats']);
         $initialStats['points'] = $incomingHadBonus ? $incomingPoints : ($incomingPoints + 50);
         $initialStats['starterBonusGranted'] = true;
+        $initialStats['referralsCount'] = 0;
+        $initialStats['referralPointsEarned'] = 0;
     } else {
         $initialStats = $defaultStats;
     }
@@ -258,6 +316,24 @@ if ($route === 'auth/signup' && $method === 'POST') {
         $now,
     ]);
 
+    $referralApplied = false;
+    if ($validReferrerCandidate !== '') {
+        $refUserStmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
+        $refUserStmt->execute([$validReferrerCandidate]);
+        $referrerRow = $refUserStmt->fetch();
+        if ($referrerRow) {
+            $refInsertSql = $engine === 'mysql'
+                ? 'INSERT IGNORE INTO referrals (invitee_username, referrer_username, reward_points, created_at) VALUES (?, ?, ?, ?)'
+                : 'INSERT OR IGNORE INTO referrals (invitee_username, referrer_username, reward_points, created_at) VALUES (?, ?, ?, ?)';
+            $refInsertStmt = $pdo->prepare($refInsertSql);
+            $refInsertStmt->execute([$username, $referrerRow['username'], REFERRAL_REWARD_POINTS, $now]);
+            if ($refInsertStmt->rowCount() > 0) {
+                formatUserAccount($referrerRow, $pdo);
+                $referralApplied = true;
+            }
+        }
+    }
+
     $fetchStmt = $pdo->prepare('SELECT * FROM users WHERE username = ?');
     $fetchStmt->execute([$username]);
     $createdRow = $fetchStmt->fetch();
@@ -265,6 +341,7 @@ if ($route === 'auth/signup' && $method === 'POST') {
     sendJson(201, [
         'account' => formatUserAccount($createdRow, $pdo),
         'token' => $sessionToken,
+        'referralApplied' => $referralApplied,
     ]);
 }
 
@@ -340,9 +417,18 @@ if ($route === 'user/sync' && ($method === 'PUT' || $method === 'POST')) {
     }
 
     $defaultStats = getDefaultStats();
-    $updatedStats = isset($body['stats']) && is_array($body['stats'])
-        ? array_replace_recursive($defaultStats, $body['stats'])
-        : json_decode($userRow['stats_json'], true);
+    $refTotals = getUserReferralTotals($pdo, (string)$userRow['username']);
+    if (isset($body['stats']) && is_array($body['stats'])) {
+        $clientKnownRefPts = max(0, (int)($body['stats']['referralPointsEarned'] ?? 0));
+        $unseenRefBonus = max(0, $refTotals['totalPoints'] - $clientKnownRefPts);
+        $updatedStats = array_replace_recursive($defaultStats, $body['stats']);
+        $updatedStats['points'] = max(0, (int)($body['stats']['points'] ?? 0)) + $unseenRefBonus;
+        $updatedStats['starterBonusGranted'] = true;
+        $updatedStats['referralsCount'] = $refTotals['count'];
+        $updatedStats['referralPointsEarned'] = $refTotals['totalPoints'];
+    } else {
+        $updatedStats = formatUserAccount($userRow, $pdo)['stats'];
+    }
 
     $updatedGameStates = isset($body['gameStates']) && is_array($body['gameStates'])
         ? $body['gameStates']
